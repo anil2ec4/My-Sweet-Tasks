@@ -1,0 +1,25 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "My Sweet Tasks",
+    "description": "A simple and fast to-do mini app that helps you stay organized.",
+    "homeUrl": "https://my-sweet-tasks.vercel.app/",
+    "iconUrl": "https://my-sweet-tasks.vercel.app/icon.png",
+    "splashImageUrl": "https://my-sweet-tasks.vercel.app/hero.png",
+    "splashBackgroundColor": "#000000",
+    "screenshotUrls": [
+      "https://my-sweet-tasks.vercel.app/s1.png"
+    ],
+    "primaryCategory": "productivity",
+    "tags": ["tasks", "todo", "miniapp"],
+    "ogTitle": "My Sweet Tasks",
+    "ogDescription": "Add, organize, and complete your daily tasks effortlessly.",
+    "ogImageUrl": "https://my-sweet-tasks.vercel.app/og.png",
+    "canonicalDomain": "my-sweet-tasks.vercel.app"
+  }
+}
