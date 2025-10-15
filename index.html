@@ -87,14 +87,14 @@
             <!-- Header with Profile & Gamification -->
             <div class="flex items-center justify-between mb-6">
                 <!-- User Profile Info -->
-                <div id="profile-header" class="flex items-center gap-3">
-                    <img id="profile-avatar" src="https://placehold.co/40x40/fbcfe8/db2777?text=P" class="w-10 h-10 rounded-full border-2 border-pink-200">
-                    <div>
-                        <p id="profile-name" class="font-bold text-slate-700 dark:text-rose-200">Username</p>
+                <div id="profile-header" class="flex items-center gap-3 min-w-0">
+                    <img id="profile-avatar" src="https://placehold.co/40x40/fbcfe8/db2777?text=P" class="w-10 h-10 rounded-full border-2 border-pink-200 flex-shrink-0">
+                    <div class="min-w-0">
+                        <p id="profile-name" class="font-bold text-slate-700 dark:text-rose-200 truncate">Username</p>
                         <p id="profile-address" class="text-xs text-slate-500 dark:text-purple-400 font-mono">0x...</p>
                     </div>
                 </div>
-                <button id="disconnect-btn" class="bg-rose-100 dark:bg-purple-800 text-slate-600 dark:text-purple-300 font-semibold py-2 px-4 rounded-lg hover:bg-rose-200 dark:hover:bg-purple-700 transition">
+                <button id="disconnect-btn" class="bg-rose-100 dark:bg-purple-800 text-slate-600 dark:text-purple-300 font-semibold py-2 px-4 rounded-lg hover:bg-rose-200 dark:hover:bg-purple-700 transition flex-shrink-0">
                     Disconnect
                 </button>
             </div>
@@ -219,38 +219,43 @@
         // App State
         let tasks = [], currentFilter = 'all', currentSort = 'creation', activeTag = null, selectedTag = null;
         let pomodoroState = { timerId: null, currentTaskIndex: -1, secondsLeft: 25 * 60, mode: 'work', isRunning: false };
-        
-        // --- BaseApp Simulation State ---
         let currentUser = null;
         
-        // --- Mock BaseApp Functions ---
-        const MOCK_USER_PROFILE = {
-            address: '0x1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t',
-            displayName: 'SweetDeveloper',
-            avatarUrl: 'https://placehold.co/40x40/fbcfe8/db2777?text=SD'
-        };
+        // --- Wallet Connection Logic ---
+        async function handleConnect() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('Please install MetaMask or another wallet extension!');
+                return;
+            }
 
-        function mockConnectWallet() {
-            return new Promise(resolve => {
-                setTimeout(() => { // Simulate connection delay
-                    currentUser = MOCK_USER_PROFILE;
-                    localStorage.setItem('baseapp_connected_user', JSON.stringify(currentUser));
-                    resolve(currentUser);
-                }, 500);
-            });
-        }
-
-        function handleConnect() {
             connectWalletBtn.disabled = true;
             connectWalletBtn.textContent = 'Connecting...';
-            mockConnectWallet().then(user => {
-                showAppScreen(user);
-            });
+
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const account = accounts[0];
+
+                // In a real BaseApp, you'd fetch profile data from a service
+                // Here, we'll create a mock profile based on the address
+                currentUser = {
+                    address: account,
+                    displayName: 'New User', // Placeholder name
+                    avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${account.substring(2, 4).toUpperCase()}`
+                };
+
+                localStorage.setItem('baseapp_connected_user_address', account);
+                showAppScreen(currentUser);
+
+            } catch (error) {
+                console.error("User rejected connection request", error);
+                connectWalletBtn.disabled = false;
+                connectWalletBtn.textContent = 'Connect Wallet';
+            }
         }
 
         function handleDisconnect() {
             currentUser = null;
-            localStorage.removeItem('baseapp_connected_user');
+            localStorage.removeItem('baseapp_connected_user_address');
             tasks = [];
             showConnectScreen();
         }
@@ -258,6 +263,8 @@
         function showConnectScreen() {
             connectContainer.classList.remove('hidden');
             appContainer.classList.add('hidden');
+            connectWalletBtn.disabled = false;
+            connectWalletBtn.textContent = 'Connect Wallet';
         }
 
         function showAppScreen(user) {
@@ -275,30 +282,32 @@
             renderTasks();
         }
 
-        // --- Theme Management ---
-        function applyTheme(theme) { document.documentElement.classList.toggle('dark', theme === 'dark'); lightIcon.classList.toggle('hidden', theme === 'dark'); darkIcon.classList.toggle('hidden', theme !== 'dark'); }
-        themeToggleBtn.addEventListener('click', () => { const newTheme = document.documentElement.classList.toggle('dark') ? 'dark' : 'light'; localStorage.setItem('theme', newTheme); applyTheme(newTheme); });
+        // --- Theme Management (Corrected) ---
+        function applyTheme(theme) { 
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+            lightIcon.classList.toggle('hidden', theme === 'dark');
+            darkIcon.classList.toggle('hidden', theme !== 'dark');
+        }
+
+        themeToggleBtn.addEventListener('click', () => { 
+            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
         
         // --- Data Persistence (Updated for multi-user) ---
         function saveTasks() {
             if (!currentUser) return;
-            // Save tasks under a key specific to the user's address
             localStorage.setItem(`miniapp_tasks_${currentUser.address}`, JSON.stringify(tasks));
         }
         function loadTasks() {
             if (!currentUser) return;
             const storedTasks = localStorage.getItem(`miniapp_tasks_${currentUser.address}`);
-            if (storedTasks) {
-                tasks = JSON.parse(storedTasks).map(t => ({
-                    ...{ pomodoros: 0, tags: [], priority: 'medium' }, ...t
-                }));
-            } else {
-                tasks = []; // No tasks for this user yet
-            }
+            tasks = storedTasks ? JSON.parse(storedTasks) : [];
         }
         function saveAndRender() { saveTasks(); renderTasks(); }
 
-        // --- Core Rendering Logic (No changes needed here) ---
+        // --- Core Rendering Logic ---
         function renderTasks() {
             taskList.innerHTML = '';
             let processedTasks = tasks.filter(task => ((currentFilter === 'all') || (currentFilter === 'completed' && task.completed) || (currentFilter === 'active' && !task.completed)) && (!activeTag || (task.tags && task.tags.includes(activeTag))));
@@ -311,19 +320,15 @@
                 }
             });
 
-            if (processedTasks.length === 0 && tasks.length > 0) {
+            if (processedTasks.length === 0) {
                  emptyMessage.style.display = 'block';
-                 emptyMessage.textContent = 'No tasks match your filters.';
-                 taskList.appendChild(emptyMessage);
-            } else if (tasks.length === 0) {
-                 emptyMessage.style.display = 'block';
-                 emptyMessage.textContent = "Let's plan a fabulous day!";
+                 emptyMessage.textContent = tasks.length === 0 ? "Let's plan a fabulous day!" : "No tasks match your filters.";
                  taskList.appendChild(emptyMessage);
             } else {
                  emptyMessage.style.display = 'none';
             }
             
-            processedTasks.forEach((task, originalIndex) => {
+            processedTasks.forEach((task) => {
                 const index = tasks.findIndex(t => t.id === task.id);
                 const taskElement = document.createElement('div');
                 
@@ -409,15 +414,32 @@
         }
 
         // --- Initial Load & Event Listeners ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check for a connected user session
-            const savedUser = localStorage.getItem('baseapp_connected_user');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showAppScreen(currentUser);
+        async function checkExistingConnection() {
+            const savedAddress = localStorage.getItem('baseapp_connected_user_address');
+            if (savedAddress && window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts.length > 0 && accounts.includes(savedAddress.toLowerCase())) {
+                        currentUser = {
+                           address: savedAddress,
+                           displayName: 'Returning User',
+                           avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${savedAddress.substring(2, 4).toUpperCase()}`
+                        };
+                        showAppScreen(currentUser);
+                    } else {
+                        handleDisconnect(); // Clean up if address is saved but not connected
+                    }
+                } catch (err) {
+                    console.error("Could not check for existing connection:", err);
+                    showConnectScreen();
+                }
             } else {
                 showConnectScreen();
             }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            checkExistingConnection();
             
             todayDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
             applyTheme(localStorage.getItem('theme') || 'light');
@@ -430,9 +452,19 @@
             document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
         });
 
-        // BaseApp Listeners
+        // Wallet Listeners
         connectWalletBtn.addEventListener('click', handleConnect);
         disconnectBtn.addEventListener('click', handleDisconnect);
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    handleDisconnect();
+                } else if (currentUser && accounts[0] !== currentUser.address) {
+                    handleDisconnect();
+                }
+            });
+        }
+
 
         // Standard App listeners
         addTaskBtn.addEventListener('click', addTask);
@@ -496,5 +528,4 @@
     </script>
 </body>
 </html>
-
 
