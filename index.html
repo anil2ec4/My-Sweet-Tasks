@@ -145,9 +145,9 @@
             <!-- Controls: Filter & Sort -->
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 border-t pt-4">
                 <div id="filter-buttons" class="flex justify-center gap-2 bg-rose-100 p-1 rounded-lg">
-                    <button data-filter="all" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600">All</button>
                     <button data-filter="active" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600">Active</button>
                     <button data-filter="completed" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600">Completed</button>
+                    <button data-filter="all" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600">All</button>
                 </div>
                 <div class="flex items-center gap-2">
                      <label for="sort-select" class="text-sm font-medium text-slate-600">Sort by:</label>
@@ -173,7 +173,7 @@
         </div>
     </div>
 
-    <!-- Pomodoro Timer Modal (Content unchanged) -->
+    <!-- Pomodoro Timer Modal -->
     <div id="pomodoro-modal" class="pomodoro-modal-bg fixed inset-0 z-50 flex items-center justify-center hidden">
         <div class="pomodoro-modal open bg-white border border-white/30 rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
             <h2 id="pomodoro-task-title" class="text-xl font-bold text-slate-800 mb-2">Focus on Task</h2>
@@ -203,7 +203,7 @@
         const pomodoroModal = document.getElementById('pomodoro-modal'), pomodoroTaskTitle = document.getElementById('pomodoro-task-title'), pomodoroTimerEl = document.getElementById('pomodoro-timer'), pomodoroStatus = document.getElementById('pomodoro-status'), pomodoroStartPauseBtn = document.getElementById('pomodoro-start-pause'), pomodoroResetBtn = document.getElementById('pomodoro-reset'), pomodoroCloseBtn = document.getElementById('pomodoro-close');
 
         // App State
-        let tasks = [], currentFilter = 'all', currentSort = 'creation', activeTag = null, selectedTag = null;
+        let tasks = [], currentFilter = 'active', currentSort = 'creation', activeTag = null, selectedTag = null;
         let pomodoroState = { timerId: null, currentTaskIndex: -1, endTime: 0, isRunning: false, remainingSecondsOnPause: 25 * 60 };
         let currentUser = null;
         
@@ -249,12 +249,24 @@
             }
         }
 
-        function handleDisconnect() {
+        async function handleDisconnect() {
+            if (window.ethereum && window.ethereum.request) {
+                try {
+                    // This specific method is not standard but works for some wallets to clear permissions.
+                    await window.ethereum.request({
+                        method: "wallet_revokePermissions",
+                        params: [{ eth_accounts: {} }]
+                    });
+                } catch (e) {
+                    console.error("Could not revoke permissions. This may not be supported by your wallet.", e);
+                }
+            }
             currentUser = null;
             localStorage.removeItem('baseapp_connected_user_address');
             tasks = [];
             showConnectScreen();
         }
+
 
         function showConnectScreen() {
             connectContainer.classList.remove('hidden');
@@ -303,7 +315,7 @@
 
             if (processedTasks.length === 0) {
                  emptyMessage.style.display = 'block';
-                 emptyMessage.textContent = tasks.length === 0 ? "Let's plan a fabulous day!" : "No tasks match your filters.";
+                 emptyMessage.textContent = tasks.length === 0 ? "Plan a fabulous day!" : "No tasks match your filters.";
                  taskList.appendChild(emptyMessage);
             } else {
                  emptyMessage.style.display = 'none';
@@ -334,7 +346,7 @@
                         </div>
                         <div class="actions flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0 -mr-2">
                             ${focusButtonHTML}
-                            <button class="delete-btn text-slate-500 hover:text-red-600 p-2 rounded-md" onclick="deleteTask(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                            <button class="delete-btn text-slate-500 hover:text-red-600 p-2 rounded-md" title="Delete task" onclick="deleteTask(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
                         </div>
                     </div>
                     ${tagsHTML ? `<div class="mt-2 ml-8 flex flex-wrap gap-2">${tagsHTML}</div>` : ''}
@@ -398,6 +410,7 @@
                         currentUser = await fetchProfileData(savedAddress);
                         showAppScreen(currentUser);
                     } else {
+                        // If saved address is no longer in the connected accounts, disconnect.
                         handleDisconnect();
                     }
                 } catch (err) { console.error(err); showConnectScreen(); }
@@ -411,7 +424,7 @@
             const circumference = 2 * Math.PI * radius;
             progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
             progressRing.style.strokeDashoffset = circumference;
-            document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
+            document.querySelector('.filter-btn[data-filter="active"]').classList.add('active');
         });
 
         // --- Pomodoro & Notifications ---
@@ -425,13 +438,11 @@
             pomodoroTaskTitle.textContent = tasks[index].text;
 
             if (pomodoroState.isRunning && pomodoroState.currentTaskIndex !== index) {
-                // If another timer is running, reset it before starting a new one.
                 resetPomodoro(false);
             }
             
             pomodoroState.currentTaskIndex = index;
             if (!pomodoroState.isRunning) {
-                // Restore remaining seconds if it was paused for this task, otherwise reset to 25 mins
                 const lastPausedSeconds = tasks[index].pomodoroPausedAt;
                 pomodoroState.remainingSecondsOnPause = lastPausedSeconds !== undefined ? lastPausedSeconds : 25 * 60;
                 updateTimerDisplay(pomodoroState.remainingSecondsOnPause);
