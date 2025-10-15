@@ -212,10 +212,8 @@
             const sweetNames = ["Starlight", "Sparkle", "Dreamer", "Cupcake", "Glimmer", "Candy", "Pixel", "Cosmo"];
             const nameIndex = parseInt(address.substring(2, 6), 16) % sweetNames.length;
             const secondNameIndex = parseInt(address.substring(6, 10), 16) % sweetNames.length;
-            const hasENS = parseInt(address.substring(10, 12), 16) > 128;
             
             let displayName = `${sweetNames[nameIndex]} ${sweetNames[secondNameIndex]}`;
-            if (hasENS) { displayName = `${sweetNames[nameIndex].toLowerCase()}.eth`; }
 
             const initials = displayName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
             
@@ -252,7 +250,6 @@
         async function handleDisconnect() {
             if (window.ethereum && window.ethereum.request) {
                 try {
-                    // This specific method is not standard but works for some wallets to clear permissions.
                     await window.ethereum.request({
                         method: "wallet_revokePermissions",
                         params: [{ eth_accounts: {} }]
@@ -410,7 +407,6 @@
                         currentUser = await fetchProfileData(savedAddress);
                         showAppScreen(currentUser);
                     } else {
-                        // If saved address is no longer in the connected accounts, disconnect.
                         handleDisconnect();
                     }
                 } catch (err) { console.error(err); showConnectScreen(); }
