@@ -225,15 +225,28 @@
         
         // --- Wallet & Profile Logic ---
         async function fetchProfileData(address) {
-            const sweetNames = ["Starlight", "Sparkle", "Dreamer", "Cupcake", "Glimmer", "Candy", "Pixel", "Cosmo"];
-            const nameIndex = parseInt(address.substring(2, 6), 16) % sweetNames.length;
-            const secondNameIndex = parseInt(address.substring(6, 10), 16) % sweetNames.length;
-            const displayName = `${sweetNames[nameIndex]} ${sweetNames[secondNameIndex]}`;
-            const initials = displayName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
-            
+            // This function now attempts to fetch real data from Coinbase Wallet
+            try {
+                // Check for the specific provider injected by Coinbase Wallet
+                if (window.ethereum && window.ethereum.isCoinbaseWallet) {
+                    const user = await window.ethereum.coinbase.getUser();
+                    const initials = (user.data.profile.displayName || address.substring(2,4)).substring(0, 2).toUpperCase();
+                    
+                    return {
+                        address: address,
+                        displayName: user.data.profile.displayName || `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+                        avatarUrl: user.data.profile.profileImageUrl || `https://placehold.co/40x40/fbcfe8/db2777?text=${initials}`
+                    };
+                }
+            } catch (error) {
+                console.error("Could not fetch Coinbase user data, falling back to address.", error);
+            }
+
+            // Fallback if not in Coinbase Wallet or if the API fails
+            const initials = address.substring(2, 4).toUpperCase();
             return {
                 address: address,
-                displayName: displayName,
+                displayName: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
                 avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${initials}`
             };
         }
@@ -335,7 +348,7 @@
             if (processedTasks.length === 0) {
                  emptyMessage.classList.remove('hidden');
                  if (tasks.length === 0) emptyMessage.textContent = "Plan a fabulous day!";
-                 else if (currentFilter === 'active') { /* Let celebration handle this */ } 
+                 else if (currentFilter === 'active') { emptyMessage.classList.add('hidden'); /* Let celebration handle this */ } 
                  else if (currentFilter === 'completed') emptyMessage.textContent = "You haven't completed any tasks yet.";
                  else emptyMessage.textContent = `No tasks with the tag "${activeTag}" found.`;
             } else {
@@ -439,7 +452,7 @@
             const activeTasks = tasks.filter(t => !t.completed);
             if (activeTasks.length === 0 && tasks.length > 0 && currentFilter === 'active') {
                 celebrationEl.classList.remove('hidden');
-                celebrationEl.classList.add('celebration-anim');
+                celebrationEl.classList.add('task-enter-active'); 
                 emptyMessage.classList.add('hidden');
                 taskList.innerHTML = '';
             } else {
@@ -518,4 +531,5 @@
     </script>
 </body>
 </html>
+
 
