@@ -213,12 +213,9 @@
         async function fetchProfileData(address) {
             // This is a simulation. In a real app, you would query the Base/ENS service.
             const sweetNames = ["Starlight", "Sparkle", "Dreamer", "Cupcake", "Glimmer", "Candy", "Pixel", "Cosmo"];
-            // Simple hash function to pick a name based on the address
             const nameIndex = parseInt(address.substring(2, 6), 16) % sweetNames.length;
             const secondNameIndex = parseInt(address.substring(6, 10), 16) % sweetNames.length;
-            
-            // Simulate checking for ENS/Basename
-            const hasENS = parseInt(address.substring(10, 12), 16) > 128; // 50% chance of having an ENS name
+            const hasENS = parseInt(address.substring(10, 12), 16) > 128; // 50% chance
             
             let displayName = `${sweetNames[nameIndex]} ${sweetNames[secondNameIndex]}`;
             if (hasENS) {
@@ -244,15 +241,11 @@
             connectWalletBtn.textContent = 'Connecting...';
 
             try {
-                // This will always prompt the user to select an account
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const account = accounts[0];
-                
                 currentUser = await fetchProfileData(account);
-
                 localStorage.setItem('baseapp_connected_user_address', account);
                 showAppScreen(currentUser);
-
             } catch (error) {
                 console.error("User rejected connection request", error);
             } finally {
@@ -263,7 +256,6 @@
 
         function handleDisconnect() {
             currentUser = null;
-            // Clear address from storage to prevent auto-reconnect
             localStorage.removeItem('baseapp_connected_user_address');
             tasks = [];
             showConnectScreen();
@@ -278,10 +270,8 @@
             profileName.textContent = user.displayName;
             profileAddress.textContent = `${user.address.substring(0, 6)}...${user.address.substring(user.address.length - 4)}`;
             profileAvatar.src = user.avatarUrl;
-
             connectContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
-
             loadTasks();
             renderTasks();
         }
@@ -304,7 +294,7 @@
             let processedTasks = tasks.filter(task => {
                 if (currentFilter === 'completed') return task.completed;
                 if (currentFilter === 'active') return !task.completed;
-                return true; // 'all'
+                return true;
             }).filter(task => !activeTag || (task.tags && task.tags.includes(activeTag)));
             
             const priorityMap = { high: 3, medium: 2, low: 1 };
@@ -372,7 +362,8 @@
             dailyCompletedCount.textContent = completedToday.length;
 
             const listEl = document.getElementById('task-list');
-            if (progress === 100 && todaysTasks.length > 0) {
+            // CORRECTED LOGIC: Only show celebration if not on 'completed' filter
+            if (progress === 100 && todaysTasks.length > 0 && currentFilter !== 'completed') {
                 celebrationEl.classList.remove('hidden');
                 listEl.classList.add('opacity-0');
             } else {
@@ -414,12 +405,10 @@
             if (savedAddress && window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    // Check if the saved account is still connected
                     if (accounts.length > 0 && accounts[0].toLowerCase() === savedAddress.toLowerCase()) {
                         currentUser = await fetchProfileData(savedAddress);
                         showAppScreen(currentUser);
                     } else {
-                        // If not connected, clear the saved address
                         handleDisconnect();
                     }
                 } catch (err) {
@@ -433,14 +422,11 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             checkExistingConnection();
-            
             todayDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-            
             const radius = 15.9155;
             const circumference = 2 * Math.PI * radius;
             progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
             progressRing.style.strokeDashoffset = circumference;
-            
             document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
         });
 
@@ -450,13 +436,9 @@
         if (window.ethereum) {
             window.ethereum.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
-                    // User disconnected all accounts
                     handleDisconnect();
                 } else if (currentUser && accounts[0].toLowerCase() !== currentUser.address.toLowerCase()) {
-                    // User switched to a different account
                     handleDisconnect();
-                    // Optional: automatically connect to the new account
-                    // handleConnect(); 
                 }
             });
         }
