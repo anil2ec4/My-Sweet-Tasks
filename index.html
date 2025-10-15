@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en" class=""> <!-- JS will manage the 'dark' class -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Sweet Tasks</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Custom font and styles for the new theme */
+        html.dark { color-scheme: dark; }
+        body { font-family: 'Poppins', sans-serif; }
+        .task-item:hover .actions { opacity: 1; }
+        
+        /* Sweet & Modern Theme Custom Styles */
+        .pink-glow-focus:focus-within,
+        .pink-glow-focus:focus {
+            box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.4);
+            border-color: #db2777;
+        }
+        .pink-glow-focus-btn:focus {
+             box-shadow: 0 0 0 3px rgba(219, 39, 119, 0.4);
+        }
+
+        /* Filter & Tag Buttons */
+        .filter-btn, .tag-btn { transition: all 0.2s ease-in-out; }
+        .filter-btn.active { background-color: #db2777; color: white; box-shadow: 0 4px 12px -2px rgba(219, 39, 119, 0.4); transform: translateY(-2px); }
+        .tag-btn.active { background-color: #9d174d; color: white; box-shadow: 0 4px 12px -2px rgba(157, 23, 77, 0.5); transform: translateY(-2px); }
+        .tag-btn { background-color: #fdf2f8; color: #9d174d; }
+        .dark .tag-btn { background-color: #581c87; color: #f0abfc; }
+
+        /* Priority Borders */
+        .priority-high { border-left: 4px solid #f43f5e; } /* rose-500 */
+        .priority-medium { border-left: 4px solid #e879f9; } /* fuchsia-400 */
+        .priority-low { border-left: 4px solid #a78bfa; } /* violet-400 */
+        
+        /* Overdue Date */
+        .overdue-date { color: #be123c; font-weight: 700; }
+
+        /* Rendered Tag in List */
+        .rendered-tag { background-color: #fdf2f8; color: #9d174d; cursor: pointer; transition: background-color 0.2s; }
+        .dark .rendered-tag { background-color: #581c87; color: #f0abfc; }
+        .rendered-tag:hover { background-color: #fce7f3; }
+        .dark .rendered-tag:hover { background-color: #6b21a8; }
+
+        /* Progress Circle */
+        .progress-ring__circle { transition: stroke-dashoffset 0.5s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+
+        /* Pomodoro Modal */
+        .pomodoro-modal-bg { background-color: rgba(50, 10, 30, 0.5); backdrop-filter: blur(4px); }
+        .pomodoro-modal { transform: scale(0.95); opacity: 0; transition: transform 0.2s ease-out, opacity 0.2s ease-out; }
+        .pomodoro-modal.open { transform: scale(1); opacity: 1; }
+
+        /* Celebration Animation */
+        @keyframes celebration-fade-in {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .celebration-anim {
+            animation: celebration-fade-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+        }
+
+    </style>
+</head>
+<body class="bg-rose-50 dark:bg-slate-900 flex items-center justify-center min-h-screen transition-colors duration-300 p-4">
+
+    <!-- Main Container -->
+    <div id="app-wrapper" class="w-full max-w-lg mx-auto">
+    
+        <!-- Connect Screen (Initially Visible) -->
+        <div id="connect-container" class="text-center p-8 bg-white/80 dark:bg-purple-950/40 backdrop-blur-xl border border-white/30 dark:border-purple-800/50 rounded-2xl shadow-2xl shadow-rose-200/50 dark:shadow-purple-950/50">
+             <span class="text-6xl mb-4 inline-block">💖</span>
+             <h1 class="text-3xl font-bold text-slate-800 dark:text-rose-100 mb-2">My Sweet Tasks</h1>
+             <p class="text-slate-500 dark:text-purple-300 mb-6">Please connect your wallet to manage your tasks.</p>
+             <button id="connect-wallet-btn" class="bg-pink-600 text-white font-bold py-3 px-8 rounded-full hover:bg-pink-700 transition-transform transform hover:scale-105 pink-glow-focus-btn text-lg">
+                Connect Wallet
+             </button>
+        </div>
+
+        <!-- App Screen (Initially Hidden) -->
+        <div id="app-container" class="hidden w-full bg-white/80 dark:bg-purple-950/40 backdrop-blur-xl border border-white/30 dark:border-purple-800/50 rounded-2xl shadow-2xl shadow-rose-200/50 dark:shadow-purple-950/50 p-6 md:p-8">
+            
+            <!-- Header with Profile & Gamification -->
+            <div class="flex items-center justify-between mb-6">
+                <!-- User Profile Info -->
+                <div id="profile-header" class="flex items-center gap-3">
+                    <img id="profile-avatar" src="https://placehold.co/40x40/fbcfe8/db2777?text=P" class="w-10 h-10 rounded-full border-2 border-pink-200">
+                    <div>
+                        <p id="profile-name" class="font-bold text-slate-700 dark:text-rose-200">Username</p>
+                        <p id="profile-address" class="text-xs text-slate-500 dark:text-purple-400 font-mono">0x...</p>
+                    </div>
+                </div>
+                <button id="disconnect-btn" class="bg-rose-100 dark:bg-purple-800 text-slate-600 dark:text-purple-300 font-semibold py-2 px-4 rounded-lg hover:bg-rose-200 dark:hover:bg-purple-700 transition">
+                    Disconnect
+                </button>
+            </div>
+            
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-slate-800 dark:text-rose-100">My Sweet Tasks</h1>
+                    <p class="text-rose-400 dark:text-purple-300" id="today-date"></p>
+                </div>
+                <div class="flex items-center gap-4">
+                     <div id="progress-container" class="relative w-16 h-16 cursor-pointer" title="Today's Progress">
+                        <svg class="w-full h-full" viewBox="0 0 36 36">
+                            <path class="text-rose-100 dark:text-purple-900/80" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5"></path>
+                            <path id="progress-ring" class="progress-ring__circle text-pink-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5" stroke-dasharray="100, 100" stroke-dashoffset="100" stroke-linecap="round"></path>
+                        </svg>
+                        <div id="progress-text" class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center text-center">
+                            <span id="daily-completed-count" class="text-lg font-extrabold text-pink-600 dark:text-pink-400">0</span>
+                            <span class="text-xs text-slate-500 dark:text-purple-400 font-medium">Done</span>
+                        </div>
+                    </div>
+                     <button id="theme-toggle" class="text-slate-500 dark:text-purple-300 hover:bg-rose-100 dark:hover:bg-purple-900 rounded-lg p-2 pink-glow-focus-btn">
+                        <svg id="theme-toggle-dark-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                        <svg id="theme-toggle-light-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Add Task Form -->
+            <div id="add-task-container" class="space-y-4 mb-4">
+                <div class="rounded-lg border border-rose-200 dark:border-purple-700 p-3 pink-glow-focus">
+                    <input type="text" id="task-input" placeholder="Plan a fabulous day..." class="w-full bg-transparent text-slate-700 dark:text-rose-200 focus:outline-none placeholder-rose-400 dark:placeholder-purple-400" autocomplete="off">
+                </div>
+                 <!-- Tag Selector -->
+                <div id="tag-selector" class="flex flex-wrap gap-2">
+                    <button data-tag="Work" class="tag-btn font-semibold py-2 px-4 rounded-full flex items-center gap-2">
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 3.75A2.75 2.75 0 018.75 1h2.5A2.75 2.75 0 0114 3.75v.443c.572.055 1.14.122 1.706.2C17.053 4.582 18 5.75 18 7.07v3.863c0 1.32-0.947 2.488-2.294 2.667-0.566.078-1.134.145-1.706.2v.443c0 2.071-1.679 3.75-3.75 3.75h-2.5A2.75 2.75 0 016 14.25v-.443a8.024 8.024 0 01-1.706-.2C2.947 13.418 2 12.25 2 10.933V7.07c0-1.32 0.947-2.488 2.294-2.667A8.024 8.024 0 016 4.193v-.443zM7.5 7.5a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                        <span>Work</span>
+                    </button>
+                    <button data-tag="Personal" class="tag-btn font-semibold py-2 px-4 rounded-full flex items-center gap-2">
+                         <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zM10 11a6 6 0 00-6 6v1.5a.5.5 0 00.5.5h11a.5.5 0 00.5-.5V17a6 6 0 00-6-6z" /></svg>
+                        <span>Personal</span>
+                    </button>
+                    <button data-tag="Study" class="tag-btn font-semibold py-2 px-4 rounded-full flex items-center gap-2">
+                         <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3.5a1 1 0 00.028 1.846l7.307 2.923c.246.1.53.1.776 0l7.307-2.923a1 1 0 00.028-1.846l-7-3.5zM3 9.735v5.526c0 .414.336.75.75.75h12.5a.75.75 0 00.75-.75V9.735l-7.307 2.923a.998.998 0 01-.776 0L3 9.735z" /></svg>
+                        <span>Study</span>
+                    </button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                     <select id="priority-select" class="flex-1 p-3 border border-rose-200 dark:border-purple-700 rounded-lg bg-transparent text-slate-700 dark:text-rose-200 dark:[color-scheme:dark] focus:outline-none pink-glow-focus">
+                        <option value="low">Low Priority</option>
+                        <option value="medium" selected>Medium Priority</option>
+                        <option value="high">High Priority</option>
+                    </select>
+                    <input type="date" id="due-date-input" class="flex-1 p-3 border border-rose-200 dark:border-purple-700 rounded-lg bg-transparent text-slate-700 dark:text-rose-200 dark:[color-scheme:dark] focus:outline-none pink-glow-focus">
+                    <button id="add-task-btn" type="button" class="bg-pink-600 text-white font-semibold px-5 py-3 rounded-lg hover:bg-pink-700 focus:outline-none transition-transform transform hover:scale-105 pink-glow-focus-btn">Add Task</button>
+                </div>
+            </div>
+            
+            <!-- Controls: Filter & Sort -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 border-t dark:border-purple-800/50 pt-4">
+                <div id="filter-buttons" class="flex justify-center gap-2 bg-rose-100 dark:bg-purple-900/60 p-1 rounded-lg">
+                    <button data-filter="all" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600 dark:text-purple-300">All</button>
+                    <button data-filter="active" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600 dark:text-purple-300">Active</button>
+                    <button data-filter="completed" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600 dark:text-purple-300">Completed</button>
+                </div>
+                <div class="flex items-center gap-2">
+                     <label for="sort-select" class="text-sm font-medium text-slate-600 dark:text-purple-400">Sort by:</label>
+                     <select id="sort-select" class="p-2 border border-rose-200 dark:border-purple-700 rounded-lg bg-transparent text-slate-700 dark:text-rose-200 text-sm dark:[color-scheme:dark] focus:outline-none pink-glow-focus">
+                        <option value="creation">Creation Date</option>
+                        <option value="dueDate">Due Date</option>
+                        <option value="priority">Priority</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Task List & Celebration -->
+            <div id="list-container" class="relative min-h-[150px]">
+                <div id="task-list" class="space-y-3 transition-opacity duration-300">
+                    <p id="empty-message" class="text-rose-500 dark:text-purple-400 text-center py-4">No tasks added yet. Let's start!</p>
+                </div>
+                <div id="celebration" class="hidden absolute inset-0 bg-white/80 dark:bg-purple-950/80 backdrop-blur-sm flex-col items-center justify-center text-center p-8 rounded-lg celebration-anim">
+                    <span class="text-5xl mb-4">💖</span>
+                    <h3 class="text-2xl font-bold text-pink-500">All Done for Today!</h3>
+                    <p class="text-slate-600 dark:text-purple-300 mt-1">Great job, you're amazing!</p>
+               </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pomodoro Timer Modal (Content unchanged) -->
+    <div id="pomodoro-modal" class="pomodoro-modal-bg fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="pomodoro-modal open bg-white dark:bg-purple-950 border border-white/30 dark:border-purple-800/50 rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+            <h2 id="pomodoro-task-title" class="text-xl font-bold text-slate-800 dark:text-rose-100 mb-2">Focus on Task</h2>
+            <p id="pomodoro-timer" class="text-6xl font-bold tabular-nums text-slate-900 dark:text-rose-50 mb-4">25:00</p>
+            <div id="pomodoro-status" class="mb-6 text-lg font-medium text-pink-500">Time to focus!</div>
+            <div class="flex justify-center gap-4">
+                <button id="pomodoro-start-pause" class="w-24 bg-pink-600 text-white font-semibold px-5 py-3 rounded-lg hover:bg-pink-700 pink-glow-focus-btn">Start</button>
+                <button id="pomodoro-reset" class="w-24 bg-rose-100 dark:bg-purple-900 text-slate-800 dark:text-rose-200 font-semibold px-5 py-3 rounded-lg hover:bg-rose-200 dark:hover:bg-purple-800">Reset</button>
+            </div>
+            <button id="pomodoro-close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-rose-300">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM Elements
+        const connectContainer = document.getElementById('connect-container');
+        const appContainer = document.getElementById('app-container');
+        const connectWalletBtn = document.getElementById('connect-wallet-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const profileHeader = document.getElementById('profile-header');
+        const profileAvatar = document.getElementById('profile-avatar');
+        const profileName = document.getElementById('profile-name');
+        const profileAddress = document.getElementById('profile-address');
+
+        // Other DOM elements
+        const addTaskBtn = document.getElementById('add-task-btn'), taskInput = document.getElementById('task-input'), prioritySelect = document.getElementById('priority-select'), dueDateInput = document.getElementById('due-date-input'), taskList = document.getElementById('task-list'), emptyMessage = document.getElementById('empty-message'), filterButtonsContainer = document.getElementById('filter-buttons'), sortSelect = document.getElementById('sort-select'), themeToggleBtn = document.getElementById('theme-toggle'), darkIcon = document.getElementById('theme-toggle-dark-icon'), lightIcon = document.getElementById('theme-toggle-light-icon'), todayDateEl = document.getElementById('today-date'), progressRing = document.getElementById('progress-ring'), dailyCompletedCount = document.getElementById('daily-completed-count'), tagSelector = document.getElementById('tag-selector'), celebrationEl = document.getElementById('celebration');
+        const pomodoroModal = document.getElementById('pomodoro-modal'), pomodoroTaskTitle = document.getElementById('pomodoro-task-title'), pomodoroTimerEl = document.getElementById('pomodoro-timer'), pomodoroStatus = document.getElementById('pomodoro-status'), pomodoroStartPauseBtn = document.getElementById('pomodoro-start-pause'), pomodoroResetBtn = document.getElementById('pomodoro-reset'), pomodoroCloseBtn = document.getElementById('pomodoro-close');
+
+        // App State
+        let tasks = [], currentFilter = 'all', currentSort = 'creation', activeTag = null, selectedTag = null;
+        let pomodoroState = { timerId: null, currentTaskIndex: -1, secondsLeft: 25 * 60, mode: 'work', isRunning: false };
+        
+        // --- BaseApp Simulation State ---
+        let currentUser = null;
+        
+        // --- Mock BaseApp Functions ---
+        const MOCK_USER_PROFILE = {
+            address: '0x1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t',
+            displayName: 'SweetDeveloper',
+            avatarUrl: 'https://placehold.co/40x40/fbcfe8/db2777?text=SD'
+        };
+
+        function mockConnectWallet() {
+            return new Promise(resolve => {
+                setTimeout(() => { // Simulate connection delay
+                    currentUser = MOCK_USER_PROFILE;
+                    localStorage.setItem('baseapp_connected_user', JSON.stringify(currentUser));
+                    resolve(currentUser);
+                }, 500);
+            });
+        }
+
+        function handleConnect() {
+            connectWalletBtn.disabled = true;
+            connectWalletBtn.textContent = 'Connecting...';
+            mockConnectWallet().then(user => {
+                showAppScreen(user);
+            });
+        }
+
+        function handleDisconnect() {
+            currentUser = null;
+            localStorage.removeItem('baseapp_connected_user');
+            tasks = [];
+            showConnectScreen();
+        }
+
+        function showConnectScreen() {
+            connectContainer.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+        }
+
+        function showAppScreen(user) {
+            // Update profile UI
+            profileName.textContent = user.displayName;
+            profileAddress.textContent = `${user.address.substring(0, 6)}...${user.address.substring(user.address.length - 4)}`;
+            profileAvatar.src = user.avatarUrl;
+
+            // Show app and hide connect screen
+            connectContainer.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+
+            // Load tasks for this user
+            loadTasks();
+            renderTasks();
+        }
+
+        // --- Theme Management ---
+        function applyTheme(theme) { document.documentElement.classList.toggle('dark', theme === 'dark'); lightIcon.classList.toggle('hidden', theme === 'dark'); darkIcon.classList.toggle('hidden', theme !== 'dark'); }
+        themeToggleBtn.addEventListener('click', () => { const newTheme = document.documentElement.classList.toggle('dark') ? 'dark' : 'light'; localStorage.setItem('theme', newTheme); applyTheme(newTheme); });
+        
+        // --- Data Persistence (Updated for multi-user) ---
+        function saveTasks() {
+            if (!currentUser) return;
+            // Save tasks under a key specific to the user's address
+            localStorage.setItem(`miniapp_tasks_${currentUser.address}`, JSON.stringify(tasks));
+        }
+        function loadTasks() {
+            if (!currentUser) return;
+            const storedTasks = localStorage.getItem(`miniapp_tasks_${currentUser.address}`);
+            if (storedTasks) {
+                tasks = JSON.parse(storedTasks).map(t => ({
+                    ...{ pomodoros: 0, tags: [], priority: 'medium' }, ...t
+                }));
+            } else {
+                tasks = []; // No tasks for this user yet
+            }
+        }
+        function saveAndRender() { saveTasks(); renderTasks(); }
+
+        // --- Core Rendering Logic (No changes needed here) ---
+        function renderTasks() {
+            taskList.innerHTML = '';
+            let processedTasks = tasks.filter(task => ((currentFilter === 'all') || (currentFilter === 'completed' && task.completed) || (currentFilter === 'active' && !task.completed)) && (!activeTag || (task.tags && task.tags.includes(activeTag))));
+            const priorityMap = { high: 3, medium: 2, low: 1 };
+            processedTasks.sort((a, b) => {
+                switch (currentSort) {
+                    case 'priority': return (priorityMap[b.priority] || 0) - (priorityMap[a.priority] || 0);
+                    case 'dueDate': if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate); if (a.dueDate) return -1; if (b.dueDate) return 1; return 0;
+                    default: return b.id - a.id;
+                }
+            });
+
+            if (processedTasks.length === 0 && tasks.length > 0) {
+                 emptyMessage.style.display = 'block';
+                 emptyMessage.textContent = 'No tasks match your filters.';
+                 taskList.appendChild(emptyMessage);
+            } else if (tasks.length === 0) {
+                 emptyMessage.style.display = 'block';
+                 emptyMessage.textContent = "Let's plan a fabulous day!";
+                 taskList.appendChild(emptyMessage);
+            } else {
+                 emptyMessage.style.display = 'none';
+            }
+            
+            processedTasks.forEach((task, originalIndex) => {
+                const index = tasks.findIndex(t => t.id === task.id);
+                const taskElement = document.createElement('div');
+                
+                const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate) < new Date().setHours(0,0,0,0);
+                const completedClass = task.completed ? 'bg-green-100/60 dark:bg-green-900/30 text-slate-500 dark:text-purple-400 line-through opacity-70' : 'bg-rose-50 dark:bg-purple-900/50';
+                const tagsHTML = (task.tags || []).map(tag => `<span class="rendered-tag text-xs font-semibold py-1 px-3 rounded-full" onclick="filterByTag('${tag}')">${tag}</span>`).join('');
+                const pomodoroCountHTML = task.pomodoros > 0 ? `<span class="text-xs font-bold text-pink-500">${'✨'.repeat(task.pomodoros)}</span>` : '';
+
+                taskElement.className = `task-item p-4 rounded-lg transition-all duration-300 ${completedClass} priority-${task.priority}`;
+                taskElement.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start gap-3 flex-grow min-w-0">
+                            <input type="checkbox" ${task.completed ? 'checked' : ''} class="mt-1 h-5 w-5 rounded border-rose-300 dark:border-purple-600 text-pink-500 focus:ring-pink-500 cursor-pointer bg-transparent" onchange="toggleTask(${index})">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                   <span class="font-medium text-slate-700 dark:text-rose-200 break-words">${task.text}</span>
+                                   ${pomodoroCountHTML}
+                                </div>
+                                ${task.dueDate ? `<p class="text-xs ${isOverdue ? 'overdue-date' : 'text-slate-400 dark:text-purple-400'}">${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
+                            </div>
+                        </div>
+                        <div class="actions flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0 -mr-2">
+                            <button class="focus-btn text-slate-500 dark:text-purple-400 hover:text-pink-600 p-2 rounded-md" title="Focus on this task" onclick="openPomodoro(${index})"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                            <button class="delete-btn text-slate-500 dark:text-purple-400 hover:text-red-600 p-2 rounded-md" onclick="deleteTask(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                        </div>
+                    </div>
+                    ${tagsHTML ? `<div class="mt-2 ml-8 flex flex-wrap gap-2">${tagsHTML}</div>` : ''}
+                `;
+                taskList.appendChild(taskElement);
+            });
+            updateDailyProgress();
+            updateFilterButtons();
+        }
+
+        // --- Gamification & Progress ---
+        function updateDailyProgress() {
+            const todayStr = new Date().toDateString();
+            const todaysTasks = tasks.filter(t => new Date(t.id).toDateString() === todayStr || (t.completedAt && new Date(t.completedAt).toDateString() === todayStr));
+            const completedToday = todaysTasks.filter(t => t.completed && t.completedAt && new Date(t.completedAt).toDateString() === todayStr);
+            const progress = todaysTasks.length > 0 ? (completedToday.length / todaysTasks.length) * 100 : 0;
+            
+            const circumference = 2 * Math.PI * 15.9155;
+            const offset = circumference - progress / 100 * circumference;
+            progressRing.style.strokeDashoffset = offset;
+            dailyCompletedCount.textContent = completedToday.length;
+
+            const listEl = document.getElementById('task-list');
+            if (progress === 100 && todaysTasks.length > 0) {
+                celebrationEl.classList.remove('hidden');
+                listEl.classList.add('opacity-0');
+            } else {
+                celebrationEl.classList.add('hidden');
+                listEl.classList.remove('opacity-0');
+            }
+        }
+
+        // --- Task Management ---
+        function addTask() {
+            const taskText = taskInput.value.trim();
+            if (taskText) {
+                tasks.push({ 
+                    id: Date.now(), 
+                    text: taskText, 
+                    completed: false, 
+                    isEditing: false, 
+                    priority: prioritySelect.value, 
+                    dueDate: dueDateInput.value || null, 
+                    tags: selectedTag ? [selectedTag] : [], 
+                    pomodoros: 0 
+                });
+                taskInput.value = '';
+                prioritySelect.value = 'medium';
+                dueDateInput.value = '';
+                selectedTag = null; 
+                document.querySelectorAll('.tag-btn').forEach(btn => btn.classList.remove('active'));
+                saveAndRender();
+            }
+        }
+        function toggleTask(index) {
+            tasks[index].completed = !tasks[index].completed;
+            tasks[index].completedAt = tasks[index].completed ? Date.now() : null;
+            saveAndRender();
+        }
+
+        // --- Initial Load & Event Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for a connected user session
+            const savedUser = localStorage.getItem('baseapp_connected_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showAppScreen(currentUser);
+            } else {
+                showConnectScreen();
+            }
+            
+            todayDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            applyTheme(localStorage.getItem('theme') || 'light');
+            
+            const radius = 15.9155;
+            const circumference = 2 * Math.PI * radius;
+            progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressRing.style.strokeDashoffset = circumference;
+            
+            document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
+        });
+
+        // BaseApp Listeners
+        connectWalletBtn.addEventListener('click', handleConnect);
+        disconnectBtn.addEventListener('click', handleDisconnect);
+
+        // Standard App listeners
+        addTaskBtn.addEventListener('click', addTask);
+        taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); }});
+        tagSelector.addEventListener('click', (e) => {
+            const button = e.target.closest('.tag-btn');
+            if (!button) return;
+            const tag = button.dataset.tag;
+            selectedTag = selectedTag === tag ? null : tag;
+            document.querySelectorAll('.tag-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tag === selectedTag));
+        });
+        sortSelect.addEventListener('change', (e) => { currentSort = e.target.value; renderTasks(); });
+        filterButtonsContainer.addEventListener('click', (e) => {
+            if (e.target.matches('.filter-btn')) {
+                currentFilter = e.target.dataset.filter;
+                if(currentFilter === 'all') activeTag = null;
+                renderTasks();
+            }
+        });
+        pomodoroStartPauseBtn.addEventListener('click', startPausePomodoro);
+        pomodoroResetBtn.addEventListener('click', resetPomodoro);
+        pomodoroCloseBtn.addEventListener('click', closePomodoro);
+        pomodoroModal.addEventListener('click', (e) => { if (e.target === pomodoroModal) closePomodoro(); });
+
+        // Helper functions
+        function deleteTask(index){ tasks.splice(index,1); saveAndRender(); }
+        function openPomodoro(index) {
+            pomodoroState.currentTaskIndex = index;
+            pomodoroTaskTitle.textContent = tasks[index].text;
+            resetPomodoro();
+            pomodoroModal.classList.remove('hidden');
+        }
+        function closePomodoro() { if (pomodoroState.isRunning) pausePomodoro(); pomodoroModal.classList.add('hidden'); }
+        function pausePomodoro() { if (!pomodoroState.isRunning) return; clearInterval(pomodoroState.timerId); pomodoroState.isRunning = false; pomodoroStartPauseBtn.textContent = 'Start'; }
+        function resetPomodoro() { clearInterval(pomodoroState.timerId); pomodoroState.isRunning = false; pomodoroState.mode = 'work'; pomodoroState.secondsLeft = 25 * 60; pomodoroStatus.textContent = "Time to focus!"; pomodoroStartPauseBtn.textContent = 'Start'; updateTimerDisplay(); }
+        function updateTimerDisplay() { const minutes = Math.floor(pomodoroState.secondsLeft / 60); const seconds = pomodoroState.secondsLeft % 60; pomodoroTimerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; }
+        function startPausePomodoro() {
+            pomodoroState.isRunning = !pomodoroState.isRunning;
+            pomodoroStartPauseBtn.textContent = pomodoroState.isRunning ? 'Pause' : 'Start';
+            if (pomodoroState.isRunning) {
+                pomodoroState.timerId = setInterval(() => {
+                    pomodoroState.secondsLeft--;
+                    updateTimerDisplay();
+                    if (pomodoroState.secondsLeft <= 0) { clearInterval(pomodoroState.timerId); handlePomodoroEnd(); }
+                }, 1000);
+            } else { clearInterval(pomodoroState.timerId); }
+        }
+        function handlePomodoroEnd() { if (pomodoroState.mode === 'work' && pomodoroState.currentTaskIndex !== -1) { tasks[pomodoroState.currentTaskIndex].pomodoros++; saveAndRender(); } }
+        function updateFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                let isActive = btn.dataset.filter === currentFilter;
+                if (activeTag && btn.dataset.filter !== 'all') { isActive = false; }
+                btn.classList.toggle('active', isActive);
+            });
+            document.querySelectorAll('.rendered-tag').forEach(tagEl => {
+                tagEl.classList.toggle('ring-2', tagEl.textContent === `${activeTag}`);
+                tagEl.classList.toggle('ring-pink-400', tagEl.textContent === `${activeTag}`);
+            });
+        }
+        function filterByTag(tag){ activeTag = activeTag === tag ? null : tag; renderTasks(); }
+    </script>
+</body>
+</html>
+
