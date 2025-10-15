@@ -59,6 +59,29 @@
         .celebration-anim {
             animation: celebration-fade-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
         }
+
+        /* Custom Date Input Styling */
+        .date-input-container { position: relative; }
+        .date-input-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            padding-left: 0.75rem;
+            pointer-events: none;
+            color: #9ca3af; /* Tailwind gray-400 */
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-rose-50 flex items-center justify-center min-h-screen transition-colors duration-300 p-4">
@@ -137,7 +160,10 @@
                         <option value="medium" selected>Medium Priority</option>
                         <option value="high">High Priority</option>
                     </select>
-                    <input type="date" id="due-date-input" class="flex-1 p-3 border border-rose-200 rounded-lg bg-transparent text-slate-700 focus:outline-none pink-glow-focus">
+                    <div class="flex-1 relative date-input-container">
+                        <input type="date" id="due-date-input" class="w-full p-3 border border-rose-200 rounded-lg bg-transparent text-slate-700 focus:outline-none pink-glow-focus">
+                        <span id="date-placeholder" class="date-input-placeholder">Select a due date</span>
+                    </div>
                     <button id="add-task-btn" type="button" class="bg-pink-600 text-white font-semibold px-5 py-3 rounded-lg hover:bg-pink-700 focus:outline-none transition-transform transform hover:scale-105 pink-glow-focus-btn">Add Task</button>
                 </div>
             </div>
@@ -199,7 +225,7 @@
         const profileAvatar = document.getElementById('profile-avatar');
         const profileName = document.getElementById('profile-name');
         const profileAddress = document.getElementById('profile-address');
-        const addTaskBtn = document.getElementById('add-task-btn'), taskInput = document.getElementById('task-input'), prioritySelect = document.getElementById('priority-select'), dueDateInput = document.getElementById('due-date-input'), taskList = document.getElementById('task-list'), emptyMessage = document.getElementById('empty-message'), filterButtonsContainer = document.getElementById('filter-buttons'), sortSelect = document.getElementById('sort-select'), todayDateEl = document.getElementById('today-date'), progressRing = document.getElementById('progress-ring'), dailyCompletedCount = document.getElementById('daily-completed-count'), tagSelector = document.getElementById('tag-selector'), celebrationEl = document.getElementById('celebration');
+        const addTaskBtn = document.getElementById('add-task-btn'), taskInput = document.getElementById('task-input'), prioritySelect = document.getElementById('priority-select'), dueDateInput = document.getElementById('due-date-input'), datePlaceholder = document.getElementById('date-placeholder'), taskList = document.getElementById('task-list'), emptyMessage = document.getElementById('empty-message'), filterButtonsContainer = document.getElementById('filter-buttons'), sortSelect = document.getElementById('sort-select'), todayDateEl = document.getElementById('today-date'), progressRing = document.getElementById('progress-ring'), dailyCompletedCount = document.getElementById('daily-completed-count'), tagSelector = document.getElementById('tag-selector'), celebrationEl = document.getElementById('celebration');
         const pomodoroModal = document.getElementById('pomodoro-modal'), pomodoroTaskTitle = document.getElementById('pomodoro-task-title'), pomodoroTimerEl = document.getElementById('pomodoro-timer'), pomodoroStatus = document.getElementById('pomodoro-status'), pomodoroStartPauseBtn = document.getElementById('pomodoro-start-pause'), pomodoroResetBtn = document.getElementById('pomodoro-reset'), pomodoroCloseBtn = document.getElementById('pomodoro-close');
 
         // App State
@@ -384,6 +410,7 @@
                 taskInput.value = '';
                 prioritySelect.value = 'medium';
                 dueDateInput.value = '';
+                datePlaceholder.classList.remove('hidden');
                 selectedTag = null; 
                 document.querySelectorAll('.tag-btn').forEach(btn => btn.classList.remove('active'));
                 saveAndRender();
@@ -421,6 +448,10 @@
             progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
             progressRing.style.strokeDashoffset = circumference;
             document.querySelector('.filter-btn[data-filter="active"]').classList.add('active');
+
+            dueDateInput.addEventListener('change', () => {
+                datePlaceholder.classList.toggle('hidden', !!dueDateInput.value);
+            });
         });
 
         // --- Pomodoro & Notifications ---
