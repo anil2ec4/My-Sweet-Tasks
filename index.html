@@ -376,7 +376,7 @@
             dailyCompletedCount.textContent = completedToday.length;
 
             const listEl = document.getElementById('task-list');
-            if (progress === 100 && todaysTasks.length > 0 && currentFilter !== 'completed') {
+            if (progress === 100 && todaysTasks.length > 0 && currentFilter === 'active') {
                 celebrationEl.classList.remove('hidden');
                 listEl.classList.add('opacity-0');
             } else {
