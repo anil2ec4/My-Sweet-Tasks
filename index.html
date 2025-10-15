@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class=""> <!-- JS will manage the 'dark' class -->
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* Custom font and styles for the new theme */
-        html.dark { color-scheme: dark; }
         body { font-family: 'Poppins', sans-serif; }
         .task-item:hover .actions { opacity: 1; }
         
@@ -31,7 +30,6 @@
         .filter-btn.active { background-color: #db2777; color: white; box-shadow: 0 4px 12px -2px rgba(219, 39, 119, 0.4); transform: translateY(-2px); }
         .tag-btn.active { background-color: #9d174d; color: white; box-shadow: 0 4px 12px -2px rgba(157, 23, 77, 0.5); transform: translateY(-2px); }
         .tag-btn { background-color: #fdf2f8; color: #9d174d; }
-        .dark .tag-btn { background-color: #581c87; color: #f0abfc; }
 
         /* Priority Borders */
         .priority-high { border-left: 4px solid #f43f5e; } /* rose-500 */
@@ -43,9 +41,7 @@
 
         /* Rendered Tag in List */
         .rendered-tag { background-color: #fdf2f8; color: #9d174d; cursor: pointer; transition: background-color 0.2s; }
-        .dark .rendered-tag { background-color: #581c87; color: #f0abfc; }
         .rendered-tag:hover { background-color: #fce7f3; }
-        .dark .rendered-tag:hover { background-color: #6b21a8; }
 
         /* Progress Circle */
         .progress-ring__circle { transition: stroke-dashoffset 0.5s; transform: rotate(-90deg); transform-origin: 50% 50%; }
@@ -63,26 +59,25 @@
         .celebration-anim {
             animation: celebration-fade-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
         }
-
     </style>
 </head>
-<body class="bg-rose-50 dark:bg-slate-900 flex items-center justify-center min-h-screen transition-colors duration-300 p-4">
+<body class="bg-rose-50 flex items-center justify-center min-h-screen transition-colors duration-300 p-4">
 
     <!-- Main Container -->
     <div id="app-wrapper" class="w-full max-w-lg mx-auto">
     
         <!-- Connect Screen (Initially Visible) -->
-        <div id="connect-container" class="text-center p-8 bg-white/80 dark:bg-purple-950/40 backdrop-blur-xl border border-white/30 dark:border-purple-800/50 rounded-2xl shadow-2xl shadow-rose-200/50 dark:shadow-purple-950/50">
+        <div id="connect-container" class="text-center p-8 bg-white/80 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl shadow-rose-200/50">
              <span class="text-6xl mb-4 inline-block">💖</span>
-             <h1 class="text-3xl font-bold text-slate-800 dark:text-rose-100 mb-2">My Sweet Tasks</h1>
-             <p class="text-slate-500 dark:text-purple-300 mb-6">Please connect your wallet to manage your tasks.</p>
+             <h1 class="text-3xl font-bold text-slate-800 mb-2">My Sweet Tasks</h1>
+             <p class="text-slate-500 mb-6">Please connect your wallet to manage your tasks.</p>
              <button id="connect-wallet-btn" class="bg-pink-600 text-white font-bold py-3 px-8 rounded-full hover:bg-pink-700 transition-transform transform hover:scale-105 pink-glow-focus-btn text-lg">
                 Connect Wallet
              </button>
         </div>
 
         <!-- App Screen (Initially Hidden) -->
-        <div id="app-container" class="hidden w-full bg-white/80 dark:bg-purple-950/40 backdrop-blur-xl border border-white/30 dark:border-purple-800/50 rounded-2xl shadow-2xl shadow-rose-200/50 dark:shadow-purple-950/50 p-6 md:p-8">
+        <div id="app-container" class="hidden w-full bg-white/80 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl shadow-rose-200/50 p-6 md:p-8">
             
             <!-- Header with Profile & Gamification -->
             <div class="flex items-center justify-between mb-6">
@@ -90,42 +85,36 @@
                 <div id="profile-header" class="flex items-center gap-3 min-w-0">
                     <img id="profile-avatar" src="https://placehold.co/40x40/fbcfe8/db2777?text=P" class="w-10 h-10 rounded-full border-2 border-pink-200 flex-shrink-0">
                     <div class="min-w-0">
-                        <p id="profile-name" class="font-bold text-slate-700 dark:text-rose-200 truncate">Username</p>
-                        <p id="profile-address" class="text-xs text-slate-500 dark:text-purple-400 font-mono">0x...</p>
+                        <p id="profile-name" class="font-bold text-slate-700 truncate">Username</p>
+                        <p id="profile-address" class="text-xs text-slate-500 font-mono">0x...</p>
                     </div>
                 </div>
-                <button id="disconnect-btn" class="bg-rose-100 dark:bg-purple-800 text-slate-600 dark:text-purple-300 font-semibold py-2 px-4 rounded-lg hover:bg-rose-200 dark:hover:bg-purple-700 transition flex-shrink-0">
+                <button id="disconnect-btn" class="bg-rose-100 text-slate-600 font-semibold py-2 px-4 rounded-lg hover:bg-rose-200 transition flex-shrink-0">
                     Disconnect
                 </button>
             </div>
             
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-slate-800 dark:text-rose-100">My Sweet Tasks</h1>
-                    <p class="text-rose-400 dark:text-purple-300" id="today-date"></p>
+                    <h1 class="text-2xl md:text-3xl font-bold text-slate-800">My Sweet Tasks</h1>
+                    <p class="text-rose-400" id="today-date"></p>
                 </div>
-                <div class="flex items-center gap-4">
-                     <div id="progress-container" class="relative w-16 h-16 cursor-pointer" title="Today's Progress">
-                        <svg class="w-full h-full" viewBox="0 0 36 36">
-                            <path class="text-rose-100 dark:text-purple-900/80" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5"></path>
-                            <path id="progress-ring" class="progress-ring__circle text-pink-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5" stroke-dasharray="100, 100" stroke-dashoffset="100" stroke-linecap="round"></path>
-                        </svg>
-                        <div id="progress-text" class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center text-center">
-                            <span id="daily-completed-count" class="text-lg font-extrabold text-pink-600 dark:text-pink-400">0</span>
-                            <span class="text-xs text-slate-500 dark:text-purple-400 font-medium">Done</span>
-                        </div>
+                <div id="progress-container" class="relative w-16 h-16 cursor-pointer flex-shrink-0" title="Today's Progress">
+                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                        <path class="text-rose-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5"></path>
+                        <path id="progress-ring" class="progress-ring__circle text-pink-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5" stroke-dasharray="100, 100" stroke-dashoffset="100" stroke-linecap="round"></path>
+                    </svg>
+                    <div id="progress-text" class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center text-center">
+                        <span id="daily-completed-count" class="text-lg font-extrabold text-pink-600">0</span>
+                        <span class="text-xs text-slate-500 font-medium">Done</span>
                     </div>
-                     <button id="theme-toggle" class="text-slate-500 dark:text-purple-300 hover:bg-rose-100 dark:hover:bg-purple-900 rounded-lg p-2 pink-glow-focus-btn">
-                        <svg id="theme-toggle-dark-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-                        <svg id="theme-toggle-light-icon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
-                    </button>
                 </div>
             </div>
 
             <!-- Add Task Form -->
             <div id="add-task-container" class="space-y-4 mb-4">
-                <div class="rounded-lg border border-rose-200 dark:border-purple-700 p-3 pink-glow-focus">
-                    <input type="text" id="task-input" placeholder="Plan a fabulous day..." class="w-full bg-transparent text-slate-700 dark:text-rose-200 focus:outline-none placeholder-rose-400 dark:placeholder-purple-400" autocomplete="off">
+                <div class="rounded-lg border border-rose-200 p-3 pink-glow-focus">
+                    <input type="text" id="task-input" placeholder="Plan a fabulous day..." class="w-full bg-transparent text-slate-700 focus:outline-none placeholder-rose-400" autocomplete="off">
                 </div>
                  <!-- Tag Selector -->
                 <div id="tag-selector" class="flex flex-wrap gap-2">
@@ -143,26 +132,26 @@
                     </button>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-3">
-                     <select id="priority-select" class="flex-1 p-3 border border-rose-200 dark:border-purple-700 rounded-lg bg-transparent text-slate-700 dark:text-rose-200 dark:[color-scheme:dark] focus:outline-none pink-glow-focus">
+                     <select id="priority-select" class="flex-1 p-3 border border-rose-200 rounded-lg bg-transparent text-slate-700 focus:outline-none pink-glow-focus">
                         <option value="low">Low Priority</option>
                         <option value="medium" selected>Medium Priority</option>
                         <option value="high">High Priority</option>
                     </select>
-                    <input type="date" id="due-date-input" class="flex-1 p-3 border border-rose-200 dark:border-purple-700 rounded-lg bg-transparent text-slate-700 dark:text-rose-200 dark:[color-scheme:dark] focus:outline-none pink-glow-focus">
+                    <input type="date" id="due-date-input" class="flex-1 p-3 border border-rose-200 rounded-lg bg-transparent text-slate-700 focus:outline-none pink-glow-focus">
                     <button id="add-task-btn" type="button" class="bg-pink-600 text-white font-semibold px-5 py-3 rounded-lg hover:bg-pink-700 focus:outline-none transition-transform transform hover:scale-105 pink-glow-focus-btn">Add Task</button>
                 </div>
             </div>
             
             <!-- Controls: Filter & Sort -->
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 border-t dark:border-purple-800/50 pt-4">
-                <div id="filter-buttons" class="flex justify-center gap-2 bg-rose-100 dark:bg-purple-900/60 p-1 rounded-lg">
-                    <button data-filter="all" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600 dark:text-purple-300">All</button>
-                    <button data-filter="active" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600 dark:text-purple-300">Active</button>
-                    <button data-filter="completed" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600 dark:text-purple-300">Completed</button>
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4 border-t pt-4">
+                <div id="filter-buttons" class="flex justify-center gap-2 bg-rose-100 p-1 rounded-lg">
+                    <button data-filter="all" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600">All</button>
+                    <button data-filter="active" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600">Active</button>
+                    <button data-filter="completed" class="filter-btn font-semibold py-1 px-4 rounded-md text-slate-600">Completed</button>
                 </div>
                 <div class="flex items-center gap-2">
-                     <label for="sort-select" class="text-sm font-medium text-slate-600 dark:text-purple-400">Sort by:</label>
-                     <select id="sort-select" class="p-2 border border-rose-200 dark:border-purple-700 rounded-lg bg-transparent text-slate-700 dark:text-rose-200 text-sm dark:[color-scheme:dark] focus:outline-none pink-glow-focus">
+                     <label for="sort-select" class="text-sm font-medium text-slate-600">Sort by:</label>
+                     <select id="sort-select" class="p-2 border border-rose-200 rounded-lg bg-transparent text-slate-700 text-sm focus:outline-none pink-glow-focus">
                         <option value="creation">Creation Date</option>
                         <option value="dueDate">Due Date</option>
                         <option value="priority">Priority</option>
@@ -173,12 +162,12 @@
             <!-- Task List & Celebration -->
             <div id="list-container" class="relative min-h-[150px]">
                 <div id="task-list" class="space-y-3 transition-opacity duration-300">
-                    <p id="empty-message" class="text-rose-500 dark:text-purple-400 text-center py-4">No tasks added yet. Let's start!</p>
+                    <p id="empty-message" class="text-rose-500 text-center py-4">No tasks added yet. Let's start!</p>
                 </div>
-                <div id="celebration" class="hidden absolute inset-0 bg-white/80 dark:bg-purple-950/80 backdrop-blur-sm flex-col items-center justify-center text-center p-8 rounded-lg celebration-anim">
+                <div id="celebration" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex-col items-center justify-center text-center p-8 rounded-lg celebration-anim">
                     <span class="text-5xl mb-4">💖</span>
                     <h3 class="text-2xl font-bold text-pink-500">All Done for Today!</h3>
-                    <p class="text-slate-600 dark:text-purple-300 mt-1">Great job, you're amazing!</p>
+                    <p class="text-slate-600 mt-1">Great job, you're amazing!</p>
                </div>
             </div>
         </div>
@@ -186,15 +175,15 @@
 
     <!-- Pomodoro Timer Modal (Content unchanged) -->
     <div id="pomodoro-modal" class="pomodoro-modal-bg fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="pomodoro-modal open bg-white dark:bg-purple-950 border border-white/30 dark:border-purple-800/50 rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
-            <h2 id="pomodoro-task-title" class="text-xl font-bold text-slate-800 dark:text-rose-100 mb-2">Focus on Task</h2>
-            <p id="pomodoro-timer" class="text-6xl font-bold tabular-nums text-slate-900 dark:text-rose-50 mb-4">25:00</p>
+        <div class="pomodoro-modal open bg-white border border-white/30 rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+            <h2 id="pomodoro-task-title" class="text-xl font-bold text-slate-800 mb-2">Focus on Task</h2>
+            <p id="pomodoro-timer" class="text-6xl font-bold tabular-nums text-slate-900 mb-4">25:00</p>
             <div id="pomodoro-status" class="mb-6 text-lg font-medium text-pink-500">Time to focus!</div>
             <div class="flex justify-center gap-4">
                 <button id="pomodoro-start-pause" class="w-24 bg-pink-600 text-white font-semibold px-5 py-3 rounded-lg hover:bg-pink-700 pink-glow-focus-btn">Start</button>
-                <button id="pomodoro-reset" class="w-24 bg-rose-100 dark:bg-purple-900 text-slate-800 dark:text-rose-200 font-semibold px-5 py-3 rounded-lg hover:bg-rose-200 dark:hover:bg-purple-800">Reset</button>
+                <button id="pomodoro-reset" class="w-24 bg-rose-100 text-slate-800 font-semibold px-5 py-3 rounded-lg hover:bg-rose-200">Reset</button>
             </div>
-            <button id="pomodoro-close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-rose-300">
+            <button id="pomodoro-close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
             </button>
         </div>
@@ -207,13 +196,12 @@
         const appContainer = document.getElementById('app-container');
         const connectWalletBtn = document.getElementById('connect-wallet-btn');
         const disconnectBtn = document.getElementById('disconnect-btn');
-        const profileHeader = document.getElementById('profile-header');
         const profileAvatar = document.getElementById('profile-avatar');
         const profileName = document.getElementById('profile-name');
         const profileAddress = document.getElementById('profile-address');
 
         // Other DOM elements
-        const addTaskBtn = document.getElementById('add-task-btn'), taskInput = document.getElementById('task-input'), prioritySelect = document.getElementById('priority-select'), dueDateInput = document.getElementById('due-date-input'), taskList = document.getElementById('task-list'), emptyMessage = document.getElementById('empty-message'), filterButtonsContainer = document.getElementById('filter-buttons'), sortSelect = document.getElementById('sort-select'), themeToggleBtn = document.getElementById('theme-toggle'), darkIcon = document.getElementById('theme-toggle-dark-icon'), lightIcon = document.getElementById('theme-toggle-light-icon'), todayDateEl = document.getElementById('today-date'), progressRing = document.getElementById('progress-ring'), dailyCompletedCount = document.getElementById('daily-completed-count'), tagSelector = document.getElementById('tag-selector'), celebrationEl = document.getElementById('celebration');
+        const addTaskBtn = document.getElementById('add-task-btn'), taskInput = document.getElementById('task-input'), prioritySelect = document.getElementById('priority-select'), dueDateInput = document.getElementById('due-date-input'), taskList = document.getElementById('task-list'), emptyMessage = document.getElementById('empty-message'), filterButtonsContainer = document.getElementById('filter-buttons'), sortSelect = document.getElementById('sort-select'), todayDateEl = document.getElementById('today-date'), progressRing = document.getElementById('progress-ring'), dailyCompletedCount = document.getElementById('daily-completed-count'), tagSelector = document.getElementById('tag-selector'), celebrationEl = document.getElementById('celebration');
         const pomodoroModal = document.getElementById('pomodoro-modal'), pomodoroTaskTitle = document.getElementById('pomodoro-task-title'), pomodoroTimerEl = document.getElementById('pomodoro-timer'), pomodoroStatus = document.getElementById('pomodoro-status'), pomodoroStartPauseBtn = document.getElementById('pomodoro-start-pause'), pomodoroResetBtn = document.getElementById('pomodoro-reset'), pomodoroCloseBtn = document.getElementById('pomodoro-close');
 
         // App State
@@ -221,7 +209,31 @@
         let pomodoroState = { timerId: null, currentTaskIndex: -1, secondsLeft: 25 * 60, mode: 'work', isRunning: false };
         let currentUser = null;
         
-        // --- Wallet Connection Logic ---
+        // --- Wallet & Profile Logic ---
+        async function fetchProfileData(address) {
+            // This is a simulation. In a real app, you would query the Base/ENS service.
+            const sweetNames = ["Starlight", "Sparkle", "Dreamer", "Cupcake", "Glimmer", "Candy", "Pixel", "Cosmo"];
+            // Simple hash function to pick a name based on the address
+            const nameIndex = parseInt(address.substring(2, 6), 16) % sweetNames.length;
+            const secondNameIndex = parseInt(address.substring(6, 10), 16) % sweetNames.length;
+            
+            // Simulate checking for ENS/Basename
+            const hasENS = parseInt(address.substring(10, 12), 16) > 128; // 50% chance of having an ENS name
+            
+            let displayName = `${sweetNames[nameIndex]} ${sweetNames[secondNameIndex]}`;
+            if (hasENS) {
+                 displayName = `${sweetNames[nameIndex].toLowerCase()}.eth`;
+            }
+
+            const initials = displayName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
+            
+            return {
+                address: address,
+                displayName: displayName,
+                avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${initials}`
+            };
+        }
+
         async function handleConnect() {
             if (typeof window.ethereum === 'undefined') {
                 alert('Please install MetaMask or another wallet extension!');
@@ -232,22 +244,18 @@
             connectWalletBtn.textContent = 'Connecting...';
 
             try {
+                // This will always prompt the user to select an account
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const account = accounts[0];
-
-                // In a real BaseApp, you'd fetch profile data from a service
-                // Here, we'll create a mock profile based on the address
-                currentUser = {
-                    address: account,
-                    displayName: 'New User', // Placeholder name
-                    avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${account.substring(2, 4).toUpperCase()}`
-                };
+                
+                currentUser = await fetchProfileData(account);
 
                 localStorage.setItem('baseapp_connected_user_address', account);
                 showAppScreen(currentUser);
 
             } catch (error) {
                 console.error("User rejected connection request", error);
+            } finally {
                 connectWalletBtn.disabled = false;
                 connectWalletBtn.textContent = 'Connect Wallet';
             }
@@ -255,6 +263,7 @@
 
         function handleDisconnect() {
             currentUser = null;
+            // Clear address from storage to prevent auto-reconnect
             localStorage.removeItem('baseapp_connected_user_address');
             tasks = [];
             showConnectScreen();
@@ -263,39 +272,21 @@
         function showConnectScreen() {
             connectContainer.classList.remove('hidden');
             appContainer.classList.add('hidden');
-            connectWalletBtn.disabled = false;
-            connectWalletBtn.textContent = 'Connect Wallet';
         }
 
-        function showAppScreen(user) {
-            // Update profile UI
+        async function showAppScreen(user) {
             profileName.textContent = user.displayName;
             profileAddress.textContent = `${user.address.substring(0, 6)}...${user.address.substring(user.address.length - 4)}`;
             profileAvatar.src = user.avatarUrl;
 
-            // Show app and hide connect screen
             connectContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
 
-            // Load tasks for this user
             loadTasks();
             renderTasks();
         }
-
-        // --- Theme Management (Corrected) ---
-        function applyTheme(theme) { 
-            document.documentElement.classList.toggle('dark', theme === 'dark');
-            lightIcon.classList.toggle('hidden', theme === 'dark');
-            darkIcon.classList.toggle('hidden', theme !== 'dark');
-        }
-
-        themeToggleBtn.addEventListener('click', () => { 
-            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
-        });
         
-        // --- Data Persistence (Updated for multi-user) ---
+        // --- Data Persistence ---
         function saveTasks() {
             if (!currentUser) return;
             localStorage.setItem(`miniapp_tasks_${currentUser.address}`, JSON.stringify(tasks));
@@ -310,7 +301,12 @@
         // --- Core Rendering Logic ---
         function renderTasks() {
             taskList.innerHTML = '';
-            let processedTasks = tasks.filter(task => ((currentFilter === 'all') || (currentFilter === 'completed' && task.completed) || (currentFilter === 'active' && !task.completed)) && (!activeTag || (task.tags && task.tags.includes(activeTag))));
+            let processedTasks = tasks.filter(task => {
+                if (currentFilter === 'completed') return task.completed;
+                if (currentFilter === 'active') return !task.completed;
+                return true; // 'all'
+            }).filter(task => !activeTag || (task.tags && task.tags.includes(activeTag)));
+            
             const priorityMap = { high: 3, medium: 2, low: 1 };
             processedTasks.sort((a, b) => {
                 switch (currentSort) {
@@ -333,7 +329,7 @@
                 const taskElement = document.createElement('div');
                 
                 const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate) < new Date().setHours(0,0,0,0);
-                const completedClass = task.completed ? 'bg-green-100/60 dark:bg-green-900/30 text-slate-500 dark:text-purple-400 line-through opacity-70' : 'bg-rose-50 dark:bg-purple-900/50';
+                const completedClass = task.completed ? 'bg-green-100/60 text-slate-500 line-through opacity-70' : 'bg-rose-50';
                 const tagsHTML = (task.tags || []).map(tag => `<span class="rendered-tag text-xs font-semibold py-1 px-3 rounded-full" onclick="filterByTag('${tag}')">${tag}</span>`).join('');
                 const pomodoroCountHTML = task.pomodoros > 0 ? `<span class="text-xs font-bold text-pink-500">${'✨'.repeat(task.pomodoros)}</span>` : '';
 
@@ -341,18 +337,18 @@
                 taskElement.innerHTML = `
                     <div class="flex items-start justify-between">
                         <div class="flex items-start gap-3 flex-grow min-w-0">
-                            <input type="checkbox" ${task.completed ? 'checked' : ''} class="mt-1 h-5 w-5 rounded border-rose-300 dark:border-purple-600 text-pink-500 focus:ring-pink-500 cursor-pointer bg-transparent" onchange="toggleTask(${index})">
+                            <input type="checkbox" ${task.completed ? 'checked' : ''} class="mt-1 h-5 w-5 rounded border-rose-300 text-pink-500 focus:ring-pink-500 cursor-pointer bg-transparent" onchange="toggleTask(${index})">
                             <div class="min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                   <span class="font-medium text-slate-700 dark:text-rose-200 break-words">${task.text}</span>
+                                   <span class="font-medium text-slate-700 break-words">${task.text}</span>
                                    ${pomodoroCountHTML}
                                 </div>
-                                ${task.dueDate ? `<p class="text-xs ${isOverdue ? 'overdue-date' : 'text-slate-400 dark:text-purple-400'}">${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
+                                ${task.dueDate ? `<p class="text-xs ${isOverdue ? 'overdue-date' : 'text-slate-400'}">${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
                             </div>
                         </div>
                         <div class="actions flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0 -mr-2">
-                            <button class="focus-btn text-slate-500 dark:text-purple-400 hover:text-pink-600 p-2 rounded-md" title="Focus on this task" onclick="openPomodoro(${index})"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
-                            <button class="delete-btn text-slate-500 dark:text-purple-400 hover:text-red-600 p-2 rounded-md" onclick="deleteTask(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                            <button class="focus-btn text-slate-500 hover:text-pink-600 p-2 rounded-md" title="Focus on this task" onclick="openPomodoro(${index})"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                            <button class="delete-btn text-slate-500 hover:text-red-600 p-2 rounded-md" onclick="deleteTask(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
                         </div>
                     </div>
                     ${tagsHTML ? `<div class="mt-2 ml-8 flex flex-wrap gap-2">${tagsHTML}</div>` : ''}
@@ -393,7 +389,6 @@
                     id: Date.now(), 
                     text: taskText, 
                     completed: false, 
-                    isEditing: false, 
                     priority: prioritySelect.value, 
                     dueDate: dueDateInput.value || null, 
                     tags: selectedTag ? [selectedTag] : [], 
@@ -419,15 +414,13 @@
             if (savedAddress && window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts.length > 0 && accounts.includes(savedAddress.toLowerCase())) {
-                        currentUser = {
-                           address: savedAddress,
-                           displayName: 'Returning User',
-                           avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${savedAddress.substring(2, 4).toUpperCase()}`
-                        };
+                    // Check if the saved account is still connected
+                    if (accounts.length > 0 && accounts[0].toLowerCase() === savedAddress.toLowerCase()) {
+                        currentUser = await fetchProfileData(savedAddress);
                         showAppScreen(currentUser);
                     } else {
-                        handleDisconnect(); // Clean up if address is saved but not connected
+                        // If not connected, clear the saved address
+                        handleDisconnect();
                     }
                 } catch (err) {
                     console.error("Could not check for existing connection:", err);
@@ -442,7 +435,6 @@
             checkExistingConnection();
             
             todayDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-            applyTheme(localStorage.getItem('theme') || 'light');
             
             const radius = 15.9155;
             const circumference = 2 * Math.PI * radius;
@@ -458,13 +450,16 @@
         if (window.ethereum) {
             window.ethereum.on('accountsChanged', (accounts) => {
                 if (accounts.length === 0) {
+                    // User disconnected all accounts
                     handleDisconnect();
-                } else if (currentUser && accounts[0] !== currentUser.address) {
+                } else if (currentUser && accounts[0].toLowerCase() !== currentUser.address.toLowerCase()) {
+                    // User switched to a different account
                     handleDisconnect();
+                    // Optional: automatically connect to the new account
+                    // handleConnect(); 
                 }
             });
         }
-
 
         // Standard App listeners
         addTaskBtn.addEventListener('click', addTask);
@@ -480,7 +475,6 @@
         filterButtonsContainer.addEventListener('click', (e) => {
             if (e.target.matches('.filter-btn')) {
                 currentFilter = e.target.dataset.filter;
-                if(currentFilter === 'all') activeTag = null;
                 renderTasks();
             }
         });
@@ -515,13 +509,7 @@
         function handlePomodoroEnd() { if (pomodoroState.mode === 'work' && pomodoroState.currentTaskIndex !== -1) { tasks[pomodoroState.currentTaskIndex].pomodoros++; saveAndRender(); } }
         function updateFilterButtons() {
             document.querySelectorAll('.filter-btn').forEach(btn => {
-                let isActive = btn.dataset.filter === currentFilter;
-                if (activeTag && btn.dataset.filter !== 'all') { isActive = false; }
-                btn.classList.toggle('active', isActive);
-            });
-            document.querySelectorAll('.rendered-tag').forEach(tagEl => {
-                tagEl.classList.toggle('ring-2', tagEl.textContent === `${activeTag}`);
-                tagEl.classList.toggle('ring-pink-400', tagEl.textContent === `${activeTag}`);
+                btn.classList.toggle('active', btn.dataset.filter === currentFilter);
             });
         }
         function filterByTag(tag){ activeTag = activeTag === tag ? null : tag; renderTasks(); }
