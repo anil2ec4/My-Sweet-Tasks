@@ -126,7 +126,7 @@
                 </div>
                 <div id="tag-selector" class="flex flex-wrap gap-2">
                     <button data-tag="Work" class="tag-btn font-semibold py-2 px-4 rounded-full flex items-center gap-2">
-                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 3.75A2.75 2.75 0 018.75 1h2.5A2.75 2.75 0 0114 3.75v.443c.572.055 1.14.122 1.706.2C17.053 4.582 18 5.75 18 7.07v3.863c0 1.32-0.947 2.488-2.294 2.667-.566.078-1.134.145-1.706.2v.443c0 2.071-1.679 3.75-3.75 3.75h-2.5A2.75 2.75 0 016 14.25v-.443a8.024 8.024 0 01-1.706-.2C2.947 13.418 2 12.25 2 10.933V7.07c0-1.32 0.947-2.488 2.294-2.667A8.024 8.024 0 016 4.193v-.443zM7.5 7.5a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 3.75A2.75 2.75 0 018.75 1h2.5A2.75 2.75 0 0114 3.75v.443c.572.055 1.14.122 1.706.2C17.053 4.582 18 5.75 18 7.07v3.863c0 1.32-0.947 2.488-2.294 2.667-0.566.078-1.134.145-1.706.2v.443c0 2.071-1.679 3.75-3.75 3.75h-2.5A2.75 2.75 0 016 14.25v-.443a8.024 8.024 0 01-1.706-.2C2.947 13.418 2 12.25 2 10.933V7.07c0-1.32 0.947-2.488 2.294-2.667A8.024 8.024 0 016 4.193v-.443zM7.5 7.5a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
                         <span>Work</span>
                     </button>
                     <button data-tag="Personal" class="tag-btn font-semibold py-2 px-4 rounded-full flex items-center gap-2">
@@ -225,10 +225,6 @@
         
         // --- Wallet & Profile Logic ---
         async function fetchProfileData(address) {
-            // In a real app, you might use ethers.js to resolve an ENS name
-            // const provider = new ethers.providers.Web3Provider(window.ethereum);
-            // const ensName = await provider.lookupAddress(address);
-            // For now, we simulate
             const sweetNames = ["Starlight", "Sparkle", "Dreamer", "Cupcake", "Glimmer", "Candy", "Pixel", "Cosmo"];
             const nameIndex = parseInt(address.substring(2, 6), 16) % sweetNames.length;
             const secondNameIndex = parseInt(address.substring(6, 10), 16) % sweetNames.length;
@@ -237,7 +233,7 @@
             
             return {
                 address: address,
-                displayName: displayName, // or ensName if it exists
+                displayName: displayName,
                 avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${initials}`
             };
         }
@@ -339,7 +335,7 @@
             if (processedTasks.length === 0) {
                  emptyMessage.classList.remove('hidden');
                  if (tasks.length === 0) emptyMessage.textContent = "Plan a fabulous day!";
-                 else if (currentFilter === 'active') emptyMessage.textContent = "No active tasks. Great job!";
+                 else if (currentFilter === 'active') { /* Let celebration handle this */ } 
                  else if (currentFilter === 'completed') emptyMessage.textContent = "You haven't completed any tasks yet.";
                  else emptyMessage.textContent = `No tasks with the tag "${activeTag}" found.`;
             } else {
@@ -435,15 +431,17 @@
         function updateDailyProgress() {
             const completedToday = tasks.filter(t => t.completed && t.completedAt && new Date(t.completedAt).toDateString() === new Date().toDateString());
             const progress = tasks.length > 0 ? (completedToday.length / tasks.length) * 100 : 0;
-            const circumference = 100; // Since stroke-dasharray is 100, 100
+            const circumference = 100;
             const offset = circumference - progress;
             progressRing.style.strokeDashoffset = offset;
             dailyCompletedCount.textContent = completedToday.length;
 
             const activeTasks = tasks.filter(t => !t.completed);
-            if (activeTasks.length === 0 && tasks.length > 0) {
+            if (activeTasks.length === 0 && tasks.length > 0 && currentFilter === 'active') {
                 celebrationEl.classList.remove('hidden');
                 celebrationEl.classList.add('celebration-anim');
+                emptyMessage.classList.add('hidden');
+                taskList.innerHTML = '';
             } else {
                 celebrationEl.classList.add('hidden');
             }
