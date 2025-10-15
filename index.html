@@ -199,28 +199,23 @@
         const profileAvatar = document.getElementById('profile-avatar');
         const profileName = document.getElementById('profile-name');
         const profileAddress = document.getElementById('profile-address');
-
-        // Other DOM elements
         const addTaskBtn = document.getElementById('add-task-btn'), taskInput = document.getElementById('task-input'), prioritySelect = document.getElementById('priority-select'), dueDateInput = document.getElementById('due-date-input'), taskList = document.getElementById('task-list'), emptyMessage = document.getElementById('empty-message'), filterButtonsContainer = document.getElementById('filter-buttons'), sortSelect = document.getElementById('sort-select'), todayDateEl = document.getElementById('today-date'), progressRing = document.getElementById('progress-ring'), dailyCompletedCount = document.getElementById('daily-completed-count'), tagSelector = document.getElementById('tag-selector'), celebrationEl = document.getElementById('celebration');
         const pomodoroModal = document.getElementById('pomodoro-modal'), pomodoroTaskTitle = document.getElementById('pomodoro-task-title'), pomodoroTimerEl = document.getElementById('pomodoro-timer'), pomodoroStatus = document.getElementById('pomodoro-status'), pomodoroStartPauseBtn = document.getElementById('pomodoro-start-pause'), pomodoroResetBtn = document.getElementById('pomodoro-reset'), pomodoroCloseBtn = document.getElementById('pomodoro-close');
 
         // App State
         let tasks = [], currentFilter = 'all', currentSort = 'creation', activeTag = null, selectedTag = null;
-        let pomodoroState = { timerId: null, currentTaskIndex: -1, secondsLeft: 25 * 60, mode: 'work', isRunning: false };
+        let pomodoroState = { timerId: null, currentTaskIndex: -1, endTime: 0, isRunning: false, remainingSecondsOnPause: 25 * 60 };
         let currentUser = null;
         
         // --- Wallet & Profile Logic ---
         async function fetchProfileData(address) {
-            // This is a simulation. In a real app, you would query the Base/ENS service.
             const sweetNames = ["Starlight", "Sparkle", "Dreamer", "Cupcake", "Glimmer", "Candy", "Pixel", "Cosmo"];
             const nameIndex = parseInt(address.substring(2, 6), 16) % sweetNames.length;
             const secondNameIndex = parseInt(address.substring(6, 10), 16) % sweetNames.length;
-            const hasENS = parseInt(address.substring(10, 12), 16) > 128; // 50% chance
+            const hasENS = parseInt(address.substring(10, 12), 16) > 128;
             
             let displayName = `${sweetNames[nameIndex]} ${sweetNames[secondNameIndex]}`;
-            if (hasENS) {
-                 displayName = `${sweetNames[nameIndex].toLowerCase()}.eth`;
-            }
+            if (hasENS) { displayName = `${sweetNames[nameIndex].toLowerCase()}.eth`; }
 
             const initials = displayName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
             
@@ -322,6 +317,7 @@
                 const completedClass = task.completed ? 'bg-green-100/60 text-slate-500 line-through opacity-70' : 'bg-rose-50';
                 const tagsHTML = (task.tags || []).map(tag => `<span class="rendered-tag text-xs font-semibold py-1 px-3 rounded-full" onclick="filterByTag('${tag}')">${tag}</span>`).join('');
                 const pomodoroCountHTML = task.pomodoros > 0 ? `<span class="text-xs font-bold text-pink-500">${'✨'.repeat(task.pomodoros)}</span>` : '';
+                const focusButtonHTML = !task.completed ? `<button class="focus-btn text-slate-500 hover:text-pink-600 p-2 rounded-md" title="Focus on this task" onclick="openPomodoro(${index})"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>` : '';
 
                 taskElement.className = `task-item p-4 rounded-lg transition-all duration-300 ${completedClass} priority-${task.priority}`;
                 taskElement.innerHTML = `
@@ -337,7 +333,7 @@
                             </div>
                         </div>
                         <div class="actions flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0 -mr-2">
-                            <button class="focus-btn text-slate-500 hover:text-pink-600 p-2 rounded-md" title="Focus on this task" onclick="openPomodoro(${index})"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                            ${focusButtonHTML}
                             <button class="delete-btn text-slate-500 hover:text-red-600 p-2 rounded-md" onclick="deleteTask(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
                         </div>
                     </div>
@@ -362,7 +358,6 @@
             dailyCompletedCount.textContent = completedToday.length;
 
             const listEl = document.getElementById('task-list');
-            // CORRECTED LOGIC: Only show celebration if not on 'completed' filter
             if (progress === 100 && todaysTasks.length > 0 && currentFilter !== 'completed') {
                 celebrationEl.classList.remove('hidden');
                 listEl.classList.add('opacity-0');
@@ -376,15 +371,7 @@
         function addTask() {
             const taskText = taskInput.value.trim();
             if (taskText) {
-                tasks.push({ 
-                    id: Date.now(), 
-                    text: taskText, 
-                    completed: false, 
-                    priority: prioritySelect.value, 
-                    dueDate: dueDateInput.value || null, 
-                    tags: selectedTag ? [selectedTag] : [], 
-                    pomodoros: 0 
-                });
+                tasks.push({ id: Date.now(), text: taskText, completed: false, priority: prioritySelect.value, dueDate: dueDateInput.value || null, tags: selectedTag ? [selectedTag] : [], pomodoros: 0 });
                 taskInput.value = '';
                 prioritySelect.value = 'medium';
                 dueDateInput.value = '';
@@ -402,7 +389,9 @@
         // --- Initial Load & Event Listeners ---
         async function checkExistingConnection() {
             const savedAddress = localStorage.getItem('baseapp_connected_user_address');
-            if (savedAddress && window.ethereum) {
+            if (!savedAddress) { showConnectScreen(); return; }
+            
+            if (window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                     if (accounts.length > 0 && accounts[0].toLowerCase() === savedAddress.toLowerCase()) {
@@ -411,13 +400,8 @@
                     } else {
                         handleDisconnect();
                     }
-                } catch (err) {
-                    console.error("Could not check for existing connection:", err);
-                    showConnectScreen();
-                }
-            } else {
-                showConnectScreen();
-            }
+                } catch (err) { console.error(err); showConnectScreen(); }
+            } else { showConnectScreen(); }
         }
         
         document.addEventListener('DOMContentLoaded', () => {
@@ -430,20 +414,103 @@
             document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
         });
 
-        // Wallet Listeners
+        // --- Pomodoro & Notifications ---
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        }
+        function openPomodoro(index) {
+            requestNotificationPermission();
+            pomodoroTaskTitle.textContent = tasks[index].text;
+
+            if (pomodoroState.isRunning && pomodoroState.currentTaskIndex !== index) {
+                // If another timer is running, reset it before starting a new one.
+                resetPomodoro(false);
+            }
+            
+            pomodoroState.currentTaskIndex = index;
+            if (!pomodoroState.isRunning) {
+                // Restore remaining seconds if it was paused for this task, otherwise reset to 25 mins
+                const lastPausedSeconds = tasks[index].pomodoroPausedAt;
+                pomodoroState.remainingSecondsOnPause = lastPausedSeconds !== undefined ? lastPausedSeconds : 25 * 60;
+                updateTimerDisplay(pomodoroState.remainingSecondsOnPause);
+            }
+            pomodoroModal.classList.remove('hidden');
+        }
+        function closePomodoro() { pomodoroModal.classList.add('hidden'); }
+        function pausePomodoro() {
+            if (!pomodoroState.isRunning) return;
+            clearInterval(pomodoroState.timerId);
+            pomodoroState.isRunning = false;
+            pomodoroState.remainingSecondsOnPause = Math.round((pomodoroState.endTime - Date.now()) / 1000);
+            if(pomodoroState.currentTaskIndex !== -1) {
+                tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt = pomodoroState.remainingSecondsOnPause;
+            }
+            pomodoroStartPauseBtn.textContent = 'Start';
+        }
+        function resetPomodoro(updateDisplay = true) {
+            clearInterval(pomodoroState.timerId);
+            pomodoroState.isRunning = false;
+            pomodoroState.remainingSecondsOnPause = 25 * 60;
+            if (pomodoroState.currentTaskIndex !== -1) {
+                delete tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt;
+            }
+            pomodoroStatus.textContent = "Time to focus!";
+            pomodoroStartPauseBtn.textContent = 'Start';
+            if (updateDisplay) updateTimerDisplay(25 * 60);
+        }
+        function updateTimerDisplay(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            pomodoroTimerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+        function startPausePomodoro() {
+            if (pomodoroState.isRunning) {
+                pausePomodoro();
+                return;
+            }
+            pomodoroState.isRunning = true;
+            pomodoroStartPauseBtn.textContent = 'Pause';
+            pomodoroState.endTime = Date.now() + pomodoroState.remainingSecondsOnPause * 1000;
+            
+            pomodoroState.timerId = setInterval(() => {
+                const secondsLeft = Math.round((pomodoroState.endTime - Date.now()) / 1000);
+                if (secondsLeft <= 0) {
+                    clearInterval(pomodoroState.timerId);
+                    handlePomodoroEnd();
+                    return;
+                }
+                updateTimerDisplay(secondsLeft);
+            }, 1000);
+        }
+        function handlePomodoroEnd() {
+            if (pomodoroState.currentTaskIndex !== -1) {
+                tasks[pomodoroState.currentTaskIndex].pomodoros = (tasks[pomodoroState.currentTaskIndex].pomodoros || 0) + 1;
+                delete tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt;
+                saveAndRender();
+            }
+            pomodoroStatus.textContent = "Great job! Take a break.";
+             if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
+                new Notification("Time's up!", {
+                    body: `Focus session for "${tasks[pomodoroState.currentTaskIndex].text}" is complete! Time for a break.`,
+                    icon: 'https://placehold.co/192x192/fbcfe8/db2777?text=💖'
+                });
+            }
+            resetPomodoro(true);
+        }
+
+
+        // --- Event Listeners ---
         connectWalletBtn.addEventListener('click', handleConnect);
         disconnectBtn.addEventListener('click', handleDisconnect);
         if (window.ethereum) {
             window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length === 0) {
-                    handleDisconnect();
-                } else if (currentUser && accounts[0].toLowerCase() !== currentUser.address.toLowerCase()) {
+                if (accounts.length === 0 || (currentUser && accounts[0].toLowerCase() !== currentUser.address.toLowerCase())) {
                     handleDisconnect();
                 }
             });
         }
-
-        // Standard App listeners
         addTaskBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); }});
         tagSelector.addEventListener('click', (e) => {
@@ -461,38 +528,12 @@
             }
         });
         pomodoroStartPauseBtn.addEventListener('click', startPausePomodoro);
-        pomodoroResetBtn.addEventListener('click', resetPomodoro);
+        pomodoroResetBtn.addEventListener('click', () => resetPomodoro(true));
         pomodoroCloseBtn.addEventListener('click', closePomodoro);
         pomodoroModal.addEventListener('click', (e) => { if (e.target === pomodoroModal) closePomodoro(); });
-
-        // Helper functions
         function deleteTask(index){ tasks.splice(index,1); saveAndRender(); }
-        function openPomodoro(index) {
-            pomodoroState.currentTaskIndex = index;
-            pomodoroTaskTitle.textContent = tasks[index].text;
-            resetPomodoro();
-            pomodoroModal.classList.remove('hidden');
-        }
-        function closePomodoro() { if (pomodoroState.isRunning) pausePomodoro(); pomodoroModal.classList.add('hidden'); }
-        function pausePomodoro() { if (!pomodoroState.isRunning) return; clearInterval(pomodoroState.timerId); pomodoroState.isRunning = false; pomodoroStartPauseBtn.textContent = 'Start'; }
-        function resetPomodoro() { clearInterval(pomodoroState.timerId); pomodoroState.isRunning = false; pomodoroState.mode = 'work'; pomodoroState.secondsLeft = 25 * 60; pomodoroStatus.textContent = "Time to focus!"; pomodoroStartPauseBtn.textContent = 'Start'; updateTimerDisplay(); }
-        function updateTimerDisplay() { const minutes = Math.floor(pomodoroState.secondsLeft / 60); const seconds = pomodoroState.secondsLeft % 60; pomodoroTimerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; }
-        function startPausePomodoro() {
-            pomodoroState.isRunning = !pomodoroState.isRunning;
-            pomodoroStartPauseBtn.textContent = pomodoroState.isRunning ? 'Pause' : 'Start';
-            if (pomodoroState.isRunning) {
-                pomodoroState.timerId = setInterval(() => {
-                    pomodoroState.secondsLeft--;
-                    updateTimerDisplay();
-                    if (pomodoroState.secondsLeft <= 0) { clearInterval(pomodoroState.timerId); handlePomodoroEnd(); }
-                }, 1000);
-            } else { clearInterval(pomodoroState.timerId); }
-        }
-        function handlePomodoroEnd() { if (pomodoroState.mode === 'work' && pomodoroState.currentTaskIndex !== -1) { tasks[pomodoroState.currentTaskIndex].pomodoros++; saveAndRender(); } }
         function updateFilterButtons() {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.filter === currentFilter);
-            });
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === currentFilter));
         }
         function filterByTag(tag){ activeTag = activeTag === tag ? null : tag; renderTasks(); }
     </script>
