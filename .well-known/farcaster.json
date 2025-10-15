@@ -21,5 +21,10 @@
     "ogDescription": "Add, organize, and complete your daily tasks effortlessly.",
     "ogImageUrl": "https://my-sweet-tasks.vercel.app/og.png",
     "canonicalDomain": "my-sweet-tasks.vercel.app"
-  }
+  },
+  "baseBuilder": [
+    {
+      "ownerAddress": "0xE8CC79cEaABF3dDF939469452341579Ece2A5611"
+    }
+  ]
 }
