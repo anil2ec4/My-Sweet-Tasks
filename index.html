@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Sweet Tasks</title>
+    <!-- Ethers.js for future ENS/Basename integration -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
     <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts: Poppins -->
@@ -32,9 +34,9 @@
         .tag-btn { background-color: #fdf2f8; color: #9d174d; }
 
         /* Priority Borders */
-        .priority-high { border-left: 4px solid #f43f5e; } /* rose-500 */
-        .priority-medium { border-left: 4px solid #e879f9; } /* fuchsia-400 */
-        .priority-low { border-left: 4px solid #a78bfa; } /* violet-400 */
+        .priority-high { border-left: 4px solid #f43f5e; }
+        .priority-medium { border-left: 4px solid #e879f9; }
+        .priority-low { border-left: 4px solid #a78bfa; }
         
         /* Overdue Date */
         .overdue-date { color: #be123c; font-weight: 700; }
@@ -43,31 +45,28 @@
         .rendered-tag { background-color: #fdf2f8; color: #9d174d; cursor: pointer; transition: background-color 0.2s; }
         .rendered-tag:hover { background-color: #fce7f3; }
 
-        /* Progress Circle */
-        .progress-ring__circle { transition: stroke-dashoffset 0.5s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+        /* Modals (Pomodoro & Delete Confirmation) */
+        .modal-bg { background-color: rgba(50, 10, 30, 0.5); backdrop-filter: blur(4px); }
+        .modal-box { transform: scale(0.95); opacity: 0; transition: transform 0.2s ease-out, opacity 0.2s ease-out; }
+        .modal-box.open { transform: scale(1); opacity: 1; }
 
-        /* Pomodoro Modal */
-        .pomodoro-modal-bg { background-color: rgba(50, 10, 30, 0.5); backdrop-filter: blur(4px); }
-        .pomodoro-modal { transform: scale(0.95); opacity: 0; transition: transform 0.2s ease-out, opacity 0.2s ease-out; }
-        .pomodoro-modal.open { transform: scale(1); opacity: 1; }
-
-        /* Celebration Animation */
-        @keyframes celebration-fade-in {
-            from { opacity: 0; transform: scale(0.8); }
+        /* Task Animations */
+        @keyframes task-enter {
+            from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
         }
-        .celebration-anim {
-            animation: celebration-fade-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-        }
+        .task-enter-active { animation: task-enter 0.3s ease-out both; }
         
+        @keyframes task-exit {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.9); }
+        }
+        .task-exit-active { animation: task-exit 0.3s ease-in both; }
+
         /* Custom Date Input Styling */
         input[type="date"] { color: #9ca3af; }
-        input[type="date"].has-value { color: #374151; } /* text-slate-700 */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.6;
-            filter: invert(0.5);
-        }
+        input[type="date"].has-value { color: #374151; }
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; filter: invert(0.5); }
     </style>
 </head>
 <body class="bg-rose-50 flex items-center justify-center min-h-screen transition-colors duration-300 p-4">
@@ -109,9 +108,9 @@
                     <p class="text-rose-400" id="today-date"></p>
                 </div>
                 <div id="progress-container" class="relative w-16 h-16 cursor-pointer flex-shrink-0" title="Today's Progress">
-                    <svg class="w-full h-full" viewBox="0 0 36 36">
-                        <path class="text-rose-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5"></path>
-                        <path id="progress-ring" class="progress-ring__circle text-pink-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3.5" stroke-dasharray="100, 100" stroke-dashoffset="100" stroke-linecap="round"></path>
+                    <svg class="w-full h-full" viewBox="0 0 36 36" style="transform: rotate(-90deg);">
+                        <circle class="text-rose-100" stroke-width="3.5" stroke="currentColor" fill="transparent" r="15.9155" cx="18" cy="18"></circle>
+                        <circle id="progress-ring" class="text-pink-500 transition-all duration-500" stroke-width="3.5" stroke-dasharray="100, 100" stroke-dashoffset="100" stroke-linecap="round" stroke="currentColor" fill="transparent" r="15.9155" cx="18" cy="18"></circle>
                     </svg>
                     <div id="progress-text" class="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center text-center">
                         <span id="daily-completed-count" class="text-lg font-extrabold text-pink-600">0</span>
@@ -125,10 +124,9 @@
                 <div class="rounded-lg border border-rose-200 p-3 pink-glow-focus">
                     <input type="text" id="task-input" placeholder="Plan a fabulous day..." class="w-full bg-transparent text-slate-700 focus:outline-none placeholder-rose-400" autocomplete="off">
                 </div>
-                 <!-- Tag Selector -->
                 <div id="tag-selector" class="flex flex-wrap gap-2">
                     <button data-tag="Work" class="tag-btn font-semibold py-2 px-4 rounded-full flex items-center gap-2">
-                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 3.75A2.75 2.75 0 018.75 1h2.5A2.75 2.75 0 0114 3.75v.443c.572.055 1.14.122 1.706.2C17.053 4.582 18 5.75 18 7.07v3.863c0 1.32-0.947 2.488-2.294 2.667-0.566.078-1.134.145-1.706.2v.443c0 2.071-1.679 3.75-3.75 3.75h-2.5A2.75 2.75 0 016 14.25v-.443a8.024 8.024 0 01-1.706-.2C2.947 13.418 2 12.25 2 10.933V7.07c0-1.32 0.947-2.488 2.294-2.667A8.024 8.024 0 016 4.193v-.443zM7.5 7.5a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 3.75A2.75 2.75 0 018.75 1h2.5A2.75 2.75 0 0114 3.75v.443c.572.055 1.14.122 1.706.2C17.053 4.582 18 5.75 18 7.07v3.863c0 1.32-0.947 2.488-2.294 2.667-.566.078-1.134.145-1.706.2v.443c0 2.071-1.679 3.75-3.75 3.75h-2.5A2.75 2.75 0 016 14.25v-.443a8.024 8.024 0 01-1.706-.2C2.947 13.418 2 12.25 2 10.933V7.07c0-1.32 0.947-2.488 2.294-2.667A8.024 8.024 0 016 4.193v-.443zM7.5 7.5a1 1 0 011-1h3a1 1 0 110 2h-3a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
                         <span>Work</span>
                     </button>
                     <button data-tag="Personal" class="tag-btn font-semibold py-2 px-4 rounded-full flex items-center gap-2">
@@ -168,23 +166,21 @@
                 </div>
             </div>
             
-            <!-- Task List & Celebration -->
             <div id="list-container" class="relative min-h-[150px]">
-                <div id="task-list" class="space-y-3 transition-opacity duration-300">
-                    <p id="empty-message" class="text-rose-500 text-center py-4">No tasks added yet. Let's start!</p>
-                </div>
-                <div id="celebration" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex-col items-center justify-center text-center p-8 rounded-lg celebration-anim">
+                <div id="task-list" class="space-y-3"></div>
+                <p id="empty-message" class="text-rose-500 text-center py-4 hidden">No tasks here.</p>
+                <div id="celebration" class="hidden absolute inset-0 bg-white/80 backdrop-blur-sm flex-col items-center justify-center text-center p-8 rounded-lg">
                     <span class="text-5xl mb-4">💖</span>
-                    <h3 class="text-2xl font-bold text-pink-500">All Done for Today!</h3>
+                    <h3 class="text-2xl font-bold text-pink-500">All active tasks done!</h3>
                     <p class="text-slate-600 mt-1">Great job, you're amazing!</p>
                </div>
             </div>
         </div>
     </div>
 
-    <!-- Pomodoro Timer Modal -->
-    <div id="pomodoro-modal" class="pomodoro-modal-bg fixed inset-0 z-50 flex items-center justify-center hidden">
-        <div class="pomodoro-modal open bg-white border border-white/30 rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+    <!-- Modals -->
+    <div id="pomodoro-modal" class="modal-bg fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-box bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
             <h2 id="pomodoro-task-title" class="text-xl font-bold text-slate-800 mb-2">Focus on Task</h2>
             <p id="pomodoro-timer" class="text-6xl font-bold tabular-nums text-slate-900 mb-4">25:00</p>
             <div id="pomodoro-status" class="mb-6 text-lg font-medium text-pink-500">Time to focus!</div>
@@ -192,9 +188,20 @@
                 <button id="pomodoro-start-pause" class="w-24 bg-pink-600 text-white font-semibold px-5 py-3 rounded-lg hover:bg-pink-700 pink-glow-focus-btn">Start</button>
                 <button id="pomodoro-reset" class="w-24 bg-rose-100 text-slate-800 font-semibold px-5 py-3 rounded-lg hover:bg-rose-200">Reset</button>
             </div>
-            <button id="pomodoro-close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+            <button id="pomodoro-close" aria-label="Close pomodoro timer" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
             </button>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="modal-bg fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-box bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Are you sure?</h2>
+            <p class="text-slate-500 mb-6">Do you really want to delete this task? This action cannot be undone.</p>
+            <div class="flex justify-center gap-4">
+                <button id="delete-cancel-btn" class="w-24 bg-rose-100 text-slate-800 font-semibold px-5 py-3 rounded-lg hover:bg-rose-200">Cancel</button>
+                <button id="delete-confirm-btn" class="w-24 bg-red-500 text-white font-semibold px-5 py-3 rounded-lg hover:bg-red-600 pink-glow-focus-btn">Delete</button>
+            </div>
         </div>
     </div>
 
@@ -205,30 +212,32 @@
         const appContainer = document.getElementById('app-container');
         const connectWalletBtn = document.getElementById('connect-wallet-btn');
         const disconnectBtn = document.getElementById('disconnect-btn');
-        const profileAvatar = document.getElementById('profile-avatar');
-        const profileName = document.getElementById('profile-name');
-        const profileAddress = document.getElementById('profile-address');
+        const profileAvatar = document.getElementById('profile-avatar'), profileName = document.getElementById('profile-name'), profileAddress = document.getElementById('profile-address');
         const addTaskBtn = document.getElementById('add-task-btn'), taskInput = document.getElementById('task-input'), prioritySelect = document.getElementById('priority-select'), dueDateInput = document.getElementById('due-date-input'), taskList = document.getElementById('task-list'), emptyMessage = document.getElementById('empty-message'), filterButtonsContainer = document.getElementById('filter-buttons'), sortSelect = document.getElementById('sort-select'), todayDateEl = document.getElementById('today-date'), progressRing = document.getElementById('progress-ring'), dailyCompletedCount = document.getElementById('daily-completed-count'), tagSelector = document.getElementById('tag-selector'), celebrationEl = document.getElementById('celebration');
         const pomodoroModal = document.getElementById('pomodoro-modal'), pomodoroTaskTitle = document.getElementById('pomodoro-task-title'), pomodoroTimerEl = document.getElementById('pomodoro-timer'), pomodoroStatus = document.getElementById('pomodoro-status'), pomodoroStartPauseBtn = document.getElementById('pomodoro-start-pause'), pomodoroResetBtn = document.getElementById('pomodoro-reset'), pomodoroCloseBtn = document.getElementById('pomodoro-close');
+        const deleteModal = document.getElementById('delete-modal'), deleteConfirmBtn = document.getElementById('delete-confirm-btn'), deleteCancelBtn = document.getElementById('delete-cancel-btn');
 
         // App State
         let tasks = [], currentFilter = 'active', currentSort = 'creation', activeTag = null, selectedTag = null;
         let pomodoroState = { timerId: null, currentTaskIndex: -1, endTime: 0, isRunning: false, remainingSecondsOnPause: 25 * 60 };
         let currentUser = null;
+        let taskToDeleteIndex = -1;
         
         // --- Wallet & Profile Logic ---
         async function fetchProfileData(address) {
+            // In a real app, you might use ethers.js to resolve an ENS name
+            // const provider = new ethers.providers.Web3Provider(window.ethereum);
+            // const ensName = await provider.lookupAddress(address);
+            // For now, we simulate
             const sweetNames = ["Starlight", "Sparkle", "Dreamer", "Cupcake", "Glimmer", "Candy", "Pixel", "Cosmo"];
             const nameIndex = parseInt(address.substring(2, 6), 16) % sweetNames.length;
             const secondNameIndex = parseInt(address.substring(6, 10), 16) % sweetNames.length;
-            
-            let displayName = `${sweetNames[nameIndex]} ${sweetNames[secondNameIndex]}`;
-
+            const displayName = `${sweetNames[nameIndex]} ${sweetNames[secondNameIndex]}`;
             const initials = displayName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
             
             return {
                 address: address,
-                displayName: displayName,
+                displayName: displayName, // or ensName if it exists
                 avatarUrl: `https://placehold.co/40x40/fbcfe8/db2777?text=${initials}`
             };
         }
@@ -238,57 +247,64 @@
                 alert('Please install MetaMask or another wallet extension!');
                 return;
             }
-
-            connectWalletBtn.disabled = true;
-            connectWalletBtn.textContent = 'Connecting...';
-
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const account = accounts[0];
-                currentUser = await fetchProfileData(account);
-                localStorage.setItem('baseapp_connected_user_address', account);
+                currentUser = await fetchProfileData(accounts[0]);
+                localStorage.setItem('baseapp_connected_user_address', accounts[0]);
                 showAppScreen(currentUser);
             } catch (error) {
                 console.error("User rejected connection request", error);
-            } finally {
-                connectWalletBtn.disabled = false;
-                connectWalletBtn.textContent = 'Connect Wallet';
             }
         }
 
         async function handleDisconnect() {
             if (window.ethereum && window.ethereum.request) {
                 try {
-                    await window.ethereum.request({
-                        method: "wallet_revokePermissions",
-                        params: [{ eth_accounts: {} }]
-                    });
+                    await window.ethereum.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
                 } catch (e) {
-                    console.error("Could not revoke permissions. This may not be supported by your wallet.", e);
+                    console.error("Could not revoke permissions.", e);
                 }
             }
             currentUser = null;
             localStorage.removeItem('baseapp_connected_user_address');
+            localStorage.removeItem('miniapp_user_prefs'); // Clear user prefs on disconnect
             tasks = [];
             showConnectScreen();
         }
-
 
         function showConnectScreen() {
             connectContainer.classList.remove('hidden');
             appContainer.classList.add('hidden');
         }
 
-        async function showAppScreen(user) {
+        function showAppScreen(user) {
             profileName.textContent = user.displayName;
             profileAddress.textContent = `${user.address.substring(0, 6)}...${user.address.substring(user.address.length - 4)}`;
             profileAvatar.src = user.avatarUrl;
             connectContainer.classList.add('hidden');
             appContainer.classList.remove('hidden');
+            loadPreferences();
             loadTasks();
             renderTasks();
         }
         
+        // --- Preferences ---
+        function savePreferences() {
+            if (!currentUser) return;
+            const prefs = { filter: currentFilter, sort: currentSort };
+            localStorage.setItem(`miniapp_prefs_${currentUser.address}`, JSON.stringify(prefs));
+        }
+        function loadPreferences() {
+            if (!currentUser) return;
+            const savedPrefs = localStorage.getItem(`miniapp_prefs_${currentUser.address}`);
+            if (savedPrefs) {
+                const prefs = JSON.parse(savedPrefs);
+                currentFilter = prefs.filter || 'active';
+                currentSort = prefs.sort || 'creation';
+            }
+            sortSelect.value = currentSort;
+        }
+
         // --- Data Persistence ---
         function saveTasks() {
             if (!currentUser) return;
@@ -303,7 +319,6 @@
 
         // --- Core Rendering Logic ---
         function renderTasks() {
-            taskList.innerHTML = '';
             let processedTasks = tasks.filter(task => {
                 if (currentFilter === 'completed') return task.completed;
                 if (currentFilter === 'active') return !task.completed;
@@ -318,78 +333,126 @@
                     default: return b.id - a.id;
                 }
             });
-
+            
+            taskList.innerHTML = ''; // Clear list before re-rendering
+            
             if (processedTasks.length === 0) {
-                 emptyMessage.style.display = 'block';
-                 emptyMessage.textContent = tasks.length === 0 ? "Plan a fabulous day!" : "No tasks match your filters.";
-                 taskList.appendChild(emptyMessage);
+                 emptyMessage.classList.remove('hidden');
+                 if (tasks.length === 0) emptyMessage.textContent = "Plan a fabulous day!";
+                 else if (currentFilter === 'active') emptyMessage.textContent = "No active tasks. Great job!";
+                 else if (currentFilter === 'completed') emptyMessage.textContent = "You haven't completed any tasks yet.";
+                 else emptyMessage.textContent = `No tasks with the tag "${activeTag}" found.`;
             } else {
-                 emptyMessage.style.display = 'none';
+                 emptyMessage.classList.add('hidden');
             }
             
             processedTasks.forEach((task) => {
                 const index = tasks.findIndex(t => t.id === task.id);
                 const taskElement = document.createElement('div');
+                taskElement.className = 'task-item'; // Base class for animations
                 
-                const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate) < new Date().setHours(0,0,0,0);
-                const completedClass = task.completed ? 'bg-green-100/60 text-slate-500 line-through opacity-70' : 'bg-rose-50';
-                const tagsHTML = (task.tags || []).map(tag => `<span class="rendered-tag text-xs font-semibold py-1 px-3 rounded-full" onclick="filterByTag('${tag}')">${tag}</span>`).join('');
-                const pomodoroCountHTML = task.pomodoros > 0 ? `<span class="text-xs font-bold text-pink-500">${'✨'.repeat(task.pomodoros)}</span>` : '';
-                const focusButtonHTML = !task.completed ? `<button class="focus-btn text-slate-500 hover:text-pink-600 p-2 rounded-md" title="Focus on this task" onclick="openPomodoro(${index})"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>` : '';
-
-                taskElement.className = `task-item p-4 rounded-lg transition-all duration-300 ${completedClass} priority-${task.priority}`;
-                taskElement.innerHTML = `
-                    <div class="flex items-start justify-between">
-                        <div class="flex items-start gap-3 flex-grow min-w-0">
-                            <input type="checkbox" ${task.completed ? 'checked' : ''} class="mt-1 h-5 w-5 rounded border-rose-300 text-pink-500 focus:ring-pink-500 cursor-pointer bg-transparent" onchange="toggleTask(${index})">
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                   <span class="font-medium text-slate-700 break-words">${task.text}</span>
-                                   ${pomodoroCountHTML}
-                                </div>
-                                ${task.dueDate ? `<p class="text-xs ${isOverdue ? 'overdue-date' : 'text-slate-400'}">${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
+                if (task.isEditing) {
+                    taskElement.innerHTML = `
+                        <div class="p-4 bg-rose-100 rounded-lg border-2 border-pink-400">
+                            <input type="text" value="${task.text}" class="edit-input w-full bg-transparent text-slate-700 focus:outline-none mb-2">
+                            <div class="flex justify-end gap-2">
+                                <button class="cancel-edit-btn text-sm font-semibold text-slate-600 px-3 py-1 rounded-md hover:bg-rose-200">Cancel</button>
+                                <button class="save-edit-btn text-sm font-semibold text-white bg-pink-500 px-3 py-1 rounded-md hover:bg-pink-600">Save</button>
                             </div>
                         </div>
-                        <div class="actions flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0 -mr-2">
-                            ${focusButtonHTML}
-                            <button class="delete-btn text-slate-500 hover:text-red-600 p-2 rounded-md" title="Delete task" onclick="deleteTask(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                    `;
+                    const input = taskElement.querySelector('.edit-input');
+                    taskElement.querySelector('.save-edit-btn').onclick = () => saveEdit(index, input.value);
+                    taskElement.querySelector('.cancel-edit-btn').onclick = () => cancelEdit(index);
+                    setTimeout(() => input.focus(), 0);
+                } else {
+                    const isOverdue = task.dueDate && !task.completed && new Date(task.dueDate) < new Date().setHours(0,0,0,0);
+                    const completedClass = task.completed ? 'bg-green-100/60 text-slate-500 line-through opacity-70' : 'bg-rose-50';
+                    const tagsHTML = (task.tags || []).map(tag => `<span class="rendered-tag text-xs font-semibold py-1 px-3 rounded-full" onclick="filterByTag('${tag}')">${tag}</span>`).join('');
+                    const pomodoroCountHTML = task.pomodoros > 0 ? `<span class="text-xs font-bold text-pink-500">${'✨'.repeat(task.pomodoros)}</span>` : '';
+                    const actionsHTML = !task.completed ? `
+                        <button class="focus-btn text-slate-500 hover:text-pink-600 p-2 rounded-md" title="Focus on this task" aria-label="Focus on this task" onclick="openPomodoro(${index})"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></button>
+                        <button class="edit-btn text-slate-500 hover:text-pink-600 p-2 rounded-md" title="Edit task" aria-label="Edit task" onclick="startEditing(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>
+                    ` : '';
+                    
+                    taskElement.innerHTML = `
+                        <div class="p-4 rounded-lg transition-all duration-300 ${completedClass} priority-${task.priority}">
+                            <div class="flex items-start justify-between">
+                                <div class="flex items-start gap-3 flex-grow min-w-0">
+                                    <input type="checkbox" ${task.completed ? 'checked' : ''} class="mt-1 h-5 w-5 rounded border-rose-300 text-pink-500 focus:ring-pink-500 cursor-pointer bg-transparent" onchange="toggleTask(${index})">
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                           <span class="font-medium text-slate-700 break-words">${task.text}</span>
+                                           ${pomodoroCountHTML}
+                                        </div>
+                                        ${task.dueDate ? `<p class="text-xs ${isOverdue ? 'overdue-date' : 'text-slate-400'}">${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
+                                    </div>
+                                </div>
+                                <div class="actions flex items-center gap-1 opacity-0 transition-opacity flex-shrink-0 -mr-2">
+                                    ${actionsHTML}
+                                    <button class="delete-btn text-slate-500 hover:text-red-600 p-2 rounded-md" title="Delete task" aria-label="Delete task" onclick="openDeleteConfirmation(${index})"><svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
+                                </div>
+                            </div>
+                            ${tagsHTML ? `<div class="mt-2 ml-8 flex flex-wrap gap-2">${tagsHTML}</div>` : ''}
                         </div>
-                    </div>
-                    ${tagsHTML ? `<div class="mt-2 ml-8 flex flex-wrap gap-2">${tagsHTML}</div>` : ''}
-                `;
+                    `;
+                }
                 taskList.appendChild(taskElement);
+                taskElement.classList.add('task-enter-active');
             });
             updateDailyProgress();
             updateFilterButtons();
         }
+        
+        // --- Task Management ---
+        function startEditing(index) { tasks[index].isEditing = true; saveAndRender(); }
+        function cancelEdit(index) { tasks[index].isEditing = false; saveAndRender(); }
+        function saveEdit(index, newText) {
+            if (newText.trim()) tasks[index].text = newText.trim();
+            tasks[index].isEditing = false;
+            saveAndRender();
+        }
+        function openDeleteConfirmation(index) { taskToDeleteIndex = index; deleteModal.classList.remove('hidden'); deleteModal.querySelector('.modal-box').classList.add('open'); }
+        function closeDeleteConfirmation() { taskToDeleteIndex = -1; deleteModal.classList.add('hidden'); deleteModal.querySelector('.modal-box').classList.remove('open'); }
+        function confirmDelete() {
+            if (taskToDeleteIndex > -1) {
+                const taskElement = taskList.children[taskToDeleteIndex];
+                if(taskElement) {
+                    taskElement.classList.add('task-exit-active');
+                    setTimeout(() => {
+                        tasks.splice(taskToDeleteIndex, 1);
+                        saveAndRender();
+                    }, 300);
+                } else { // Fallback for filtered lists
+                    tasks.splice(taskToDeleteIndex, 1);
+                    saveAndRender();
+                }
+            }
+            closeDeleteConfirmation();
+        }
 
         // --- Gamification & Progress ---
         function updateDailyProgress() {
-            const todayStr = new Date().toDateString();
-            const todaysTasks = tasks.filter(t => new Date(t.id).toDateString() === todayStr || (t.completedAt && new Date(t.completedAt).toDateString() === todayStr));
-            const completedToday = todaysTasks.filter(t => t.completed && t.completedAt && new Date(t.completedAt).toDateString() === todayStr);
-            const progress = todaysTasks.length > 0 ? (completedToday.length / todaysTasks.length) * 100 : 0;
-            
-            const circumference = 2 * Math.PI * 15.9155;
-            const offset = circumference - progress / 100 * circumference;
+            const completedToday = tasks.filter(t => t.completed && t.completedAt && new Date(t.completedAt).toDateString() === new Date().toDateString());
+            const progress = tasks.length > 0 ? (completedToday.length / tasks.length) * 100 : 0;
+            const circumference = 100; // Since stroke-dasharray is 100, 100
+            const offset = circumference - progress;
             progressRing.style.strokeDashoffset = offset;
             dailyCompletedCount.textContent = completedToday.length;
 
-            const listEl = document.getElementById('task-list');
-            if (progress === 100 && todaysTasks.length > 0 && currentFilter === 'active') {
+            const activeTasks = tasks.filter(t => !t.completed);
+            if (activeTasks.length === 0 && tasks.length > 0) {
                 celebrationEl.classList.remove('hidden');
-                listEl.classList.add('opacity-0');
+                celebrationEl.classList.add('celebration-anim');
             } else {
                 celebrationEl.classList.add('hidden');
-                listEl.classList.remove('opacity-0');
             }
         }
-
-        // --- Task Management ---
+        
         function addTask() {
             const taskText = taskInput.value.trim();
             if (taskText) {
-                tasks.push({ id: Date.now(), text: taskText, completed: false, priority: prioritySelect.value, dueDate: dueDateInput.value || null, tags: selectedTag ? [selectedTag] : [], pomodoros: 0 });
+                tasks.unshift({ id: Date.now(), text: taskText, completed: false, isEditing: false, priority: prioritySelect.value, dueDate: dueDateInput.value || null, tags: selectedTag ? [selectedTag] : [], pomodoros: 0 });
                 taskInput.value = '';
                 prioritySelect.value = 'medium';
                 dueDateInput.value = '';
@@ -409,16 +472,13 @@
         async function checkExistingConnection() {
             const savedAddress = localStorage.getItem('baseapp_connected_user_address');
             if (!savedAddress) { showConnectScreen(); return; }
-            
             if (window.ethereum) {
                 try {
                     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
                     if (accounts.length > 0 && accounts[0].toLowerCase() === savedAddress.toLowerCase()) {
                         currentUser = await fetchProfileData(savedAddress);
                         showAppScreen(currentUser);
-                    } else {
-                        handleDisconnect();
-                    }
+                    } else { handleDisconnect(); }
                 } catch (err) { console.error(err); showConnectScreen(); }
             } else { showConnectScreen(); }
         }
@@ -426,136 +486,36 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkExistingConnection();
             todayDateEl.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-            const radius = 15.9155;
-            const circumference = 2 * Math.PI * radius;
-            progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
-            progressRing.style.strokeDashoffset = circumference;
-            document.querySelector('.filter-btn[data-filter="active"]').classList.add('active');
-
-            dueDateInput.addEventListener('change', () => {
-                dueDateInput.classList.toggle('has-value', !!dueDateInput.value);
-            });
+            dueDateInput.addEventListener('change', () => dueDateInput.classList.toggle('has-value', !!dueDateInput.value));
         });
 
-        // --- Pomodoro & Notifications ---
-        function requestNotificationPermission() {
-            if ('Notification' in window && Notification.permission !== 'denied') {
-                Notification.requestPermission();
-            }
-        }
-        function openPomodoro(index) {
-            requestNotificationPermission();
-            pomodoroTaskTitle.textContent = tasks[index].text;
-
-            if (pomodoroState.isRunning && pomodoroState.currentTaskIndex !== index) {
-                resetPomodoro(false);
-            }
-            
-            pomodoroState.currentTaskIndex = index;
-            if (!pomodoroState.isRunning) {
-                const lastPausedSeconds = tasks[index].pomodoroPausedAt;
-                pomodoroState.remainingSecondsOnPause = lastPausedSeconds !== undefined ? lastPausedSeconds : 25 * 60;
-                updateTimerDisplay(pomodoroState.remainingSecondsOnPause);
-            }
-            pomodoroModal.classList.remove('hidden');
-        }
-        function closePomodoro() { pomodoroModal.classList.add('hidden'); }
-        function pausePomodoro() {
-            if (!pomodoroState.isRunning) return;
-            clearInterval(pomodoroState.timerId);
-            pomodoroState.isRunning = false;
-            pomodoroState.remainingSecondsOnPause = Math.round((pomodoroState.endTime - Date.now()) / 1000);
-            if(pomodoroState.currentTaskIndex !== -1) {
-                tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt = pomodoroState.remainingSecondsOnPause;
-            }
-            pomodoroStartPauseBtn.textContent = 'Start';
-        }
-        function resetPomodoro(updateDisplay = true) {
-            clearInterval(pomodoroState.timerId);
-            pomodoroState.isRunning = false;
-            pomodoroState.remainingSecondsOnPause = 25 * 60;
-            if (pomodoroState.currentTaskIndex !== -1) {
-                delete tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt;
-            }
-            pomodoroStatus.textContent = "Time to focus!";
-            pomodoroStartPauseBtn.textContent = 'Start';
-            if (updateDisplay) updateTimerDisplay(25 * 60);
-        }
-        function updateTimerDisplay(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            pomodoroTimerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-        }
-        function startPausePomodoro() {
-            if (pomodoroState.isRunning) {
-                pausePomodoro();
-                return;
-            }
-            pomodoroState.isRunning = true;
-            pomodoroStartPauseBtn.textContent = 'Pause';
-            pomodoroState.endTime = Date.now() + pomodoroState.remainingSecondsOnPause * 1000;
-            
-            pomodoroState.timerId = setInterval(() => {
-                const secondsLeft = Math.round((pomodoroState.endTime - Date.now()) / 1000);
-                if (secondsLeft <= 0) {
-                    clearInterval(pomodoroState.timerId);
-                    handlePomodoroEnd();
-                    return;
-                }
-                updateTimerDisplay(secondsLeft);
-            }, 1000);
-        }
-        function handlePomodoroEnd() {
-            if (pomodoroState.currentTaskIndex !== -1) {
-                tasks[pomodoroState.currentTaskIndex].pomodoros = (tasks[pomodoroState.currentTaskIndex].pomodoros || 0) + 1;
-                delete tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt;
-                saveAndRender();
-            }
-            pomodoroStatus.textContent = "Great job! Take a break.";
-             if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-                new Notification("Time's up!", {
-                    body: `Focus session for "${tasks[pomodoroState.currentTaskIndex].text}" is complete! Time for a break.`,
-                    icon: 'https://placehold.co/192x192/fbcfe8/db2777?text=💖'
-                });
-            }
-            resetPomodoro(true);
-        }
-
+        // --- Pomodoro & Notifications (rest is unchanged) ---
+        function requestNotificationPermission() { if ('Notification' in window && Notification.permission !== 'denied') { Notification.requestPermission(); } }
+        function openPomodoro(index) { requestNotificationPermission(); pomodoroTaskTitle.textContent = tasks[index].text; if (pomodoroState.isRunning && pomodoroState.currentTaskIndex !== index) { resetPomodoro(false); } pomodoroState.currentTaskIndex = index; if (!pomodoroState.isRunning) { const lastPausedSeconds = tasks[index].pomodoroPausedAt; pomodoroState.remainingSecondsOnPause = lastPausedSeconds !== undefined ? lastPausedSeconds : 25 * 60; updateTimerDisplay(pomodoroState.remainingSecondsOnPause); } pomodoroModal.classList.remove('hidden'); pomodoroModal.querySelector('.modal-box').classList.add('open'); }
+        function closePomodoro() { pomodoroModal.classList.add('hidden'); pomodoroModal.querySelector('.modal-box').classList.remove('open'); }
+        function pausePomodoro() { if (!pomodoroState.isRunning) return; clearInterval(pomodoroState.timerId); pomodoroState.isRunning = false; pomodoroState.remainingSecondsOnPause = Math.round((pomodoroState.endTime - Date.now()) / 1000); if(pomodoroState.currentTaskIndex !== -1) { tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt = pomodoroState.remainingSecondsOnPause; } pomodoroStartPauseBtn.textContent = 'Start'; }
+        function resetPomodoro(updateDisplay = true) { clearInterval(pomodoroState.timerId); pomodoroState.isRunning = false; pomodoroState.remainingSecondsOnPause = 25 * 60; if (pomodoroState.currentTaskIndex !== -1) { delete tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt; } pomodoroStatus.textContent = "Time to focus!"; pomodoroStartPauseBtn.textContent = 'Start'; if (updateDisplay) updateTimerDisplay(25 * 60); }
+        function updateTimerDisplay(seconds) { const minutes = Math.floor(seconds / 60); const secs = seconds % 60; pomodoroTimerEl.textContent = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`; }
+        function startPausePomodoro() { if (pomodoroState.isRunning) { pausePomodoro(); return; } pomodoroState.isRunning = true; pomodoroStartPauseBtn.textContent = 'Pause'; pomodoroState.endTime = Date.now() + pomodoroState.remainingSecondsOnPause * 1000; pomodoroState.timerId = setInterval(() => { const secondsLeft = Math.round((pomodoroState.endTime - Date.now()) / 1000); if (secondsLeft <= 0) { clearInterval(pomodoroState.timerId); handlePomodoroEnd(); return; } updateTimerDisplay(secondsLeft); }, 1000); }
+        function handlePomodoroEnd() { if (pomodoroState.currentTaskIndex !== -1) { tasks[pomodoroState.currentTaskIndex].pomodoros = (tasks[pomodoroState.currentTaskIndex].pomodoros || 0) + 1; delete tasks[pomodoroState.currentTaskIndex].pomodoroPausedAt; saveAndRender(); } pomodoroStatus.textContent = "Great job! Take a break."; if ('Notification' in window && Notification.permission === 'granted' && document.hidden) { new Notification("Time's up!", { body: `Focus session for "${tasks[pomodoroState.currentTaskIndex].text}" is complete! Time for a break.`, icon: 'https://placehold.co/192x192/fbcfe8/db2777?text=💖' }); } resetPomodoro(true); }
 
         // --- Event Listeners ---
         connectWalletBtn.addEventListener('click', handleConnect);
         disconnectBtn.addEventListener('click', handleDisconnect);
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', (accounts) => {
-                if (accounts.length === 0 || (currentUser && accounts[0].toLowerCase() !== currentUser.address.toLowerCase())) {
-                    handleDisconnect();
-                }
-            });
-        }
+        if (window.ethereum) { window.ethereum.on('accountsChanged', (accounts) => { if (accounts.length === 0 || (currentUser && accounts[0].toLowerCase() !== currentUser.address.toLowerCase())) { handleDisconnect(); } }); }
         addTaskBtn.addEventListener('click', addTask);
         taskInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); }});
-        tagSelector.addEventListener('click', (e) => {
-            const button = e.target.closest('.tag-btn');
-            if (!button) return;
-            const tag = button.dataset.tag;
-            selectedTag = selectedTag === tag ? null : tag;
-            document.querySelectorAll('.tag-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tag === selectedTag));
-        });
-        sortSelect.addEventListener('change', (e) => { currentSort = e.target.value; renderTasks(); });
-        filterButtonsContainer.addEventListener('click', (e) => {
-            if (e.target.matches('.filter-btn')) {
-                currentFilter = e.target.dataset.filter;
-                renderTasks();
-            }
-        });
+        tagSelector.addEventListener('click', (e) => { const button = e.target.closest('.tag-btn'); if (!button) return; const tag = button.dataset.tag; selectedTag = selectedTag === tag ? null : tag; document.querySelectorAll('.tag-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tag === selectedTag)); });
+        sortSelect.addEventListener('change', (e) => { currentSort = e.target.value; savePreferences(); renderTasks(); });
+        filterButtonsContainer.addEventListener('click', (e) => { if (e.target.matches('.filter-btn')) { currentFilter = e.target.dataset.filter; savePreferences(); renderTasks(); }});
         pomodoroStartPauseBtn.addEventListener('click', startPausePomodoro);
         pomodoroResetBtn.addEventListener('click', () => resetPomodoro(true));
         pomodoroCloseBtn.addEventListener('click', closePomodoro);
         pomodoroModal.addEventListener('click', (e) => { if (e.target === pomodoroModal) closePomodoro(); });
-        function deleteTask(index){ tasks.splice(index,1); saveAndRender(); }
-        function updateFilterButtons() {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === currentFilter));
-        }
+        deleteConfirmBtn.addEventListener('click', confirmDelete);
+        deleteCancelBtn.addEventListener('click', closeDeleteConfirmation);
+        deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) closeDeleteConfirmation(); });
+        function updateFilterButtons() { document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.filter === currentFilter)); }
         function filterByTag(tag){ activeTag = activeTag === tag ? null : tag; renderTasks(); }
     </script>
 </body>
