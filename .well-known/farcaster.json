@@ -1,30 +1,22 @@
-{
-  "accountAssociation": {
-    "header": "",
-    "payload": "",
-    "signature": ""
+export const minikitConfig = {
+  accountAssociation: {
+    header: "",
+    payload: "",
+    signature: ""
   },
-  "miniapp": {
-    "version": "1",
-    "name": "My Sweet Tasks",
-    "description": "A simple and fast to-do mini app that helps you stay organized.",
-    "homeUrl": "https://my-sweet-tasks.vercel.app/",
-    "iconUrl": "https://my-sweet-tasks.vercel.app/icon.png",
-    "splashImageUrl": "https://my-sweet-tasks.vercel.app/hero.png",
-    "splashBackgroundColor": "#000000",
-    "screenshotUrls": [
-      "https://my-sweet-tasks.vercel.app/s1.png"
-    ],
-    "primaryCategory": "productivity",
-    "tags": ["tasks", "todo", "miniapp"],
-    "ogTitle": "My Sweet Tasks",
-    "ogDescription": "Add, organize, and complete your daily tasks effortlessly.",
-    "ogImageUrl": "https://my-sweet-tasks.vercel.app/og.png",
-    "canonicalDomain": "my-sweet-tasks.vercel.app"
-  },
-  "baseBuilder": [
-    {
-      "ownerAddress": "0xE8CC79cEaABf3DdF939469452341579Ece2A5611"
-    }
-  ]
-}
+  miniapp: {
+    version: "1",
+    name: "My Sweet Tasks",
+    subtitle: "Your simple daily planner",
+    description: "A clean and fast to-do mini app that helps you stay organized.",
+    screenshotUrls: ['${ROOT_URL}/s1.png'],
+    iconUrl: '${ROOT_URL}/icon.png',
+    splashImageUrl: '${ROOT_URL}/hero.png',
+    splashBackgroundColor: "#000000",
+    homeUrl: ROOT_URL,
+    primaryCategory: "productivity",
+    tags: ["tasks", "todo", "productivity", "daily"],
+    heroImageUrl: '${ROOT_URL}/hero.png',
+    tagline: "Stay on top of your day.",
+    ogTitle: "My Sweet Tasks",
+    ogDescription: "Add, organize, and complete your daily tasks effortle
